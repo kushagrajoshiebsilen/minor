@@ -1,83 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
-import Page1Auth from './components/Page1Auth';
-import Page2Role from './components/Page2Role';
-import Page3Karigar from './components/Page3Karigar';
-import Page3Buyer from './components/Page3Buyer';
+import IntroSplash from './components/IntroSplash';
+import AtelierHeader from './components/AtelierHeader';
+import OnboardingView from './components/OnboardingView';
+import RoleSelectorView from './components/RoleSelectorView';
+import KarigarStudioView from './components/KarigarStudioView';
+import BuyerMarketplaceView from './components/BuyerMarketplaceView';
+import LanguageModal from './components/LanguageModal';
+import AiSettingsModal from './components/AiSettingsModal';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
-import { translations } from './locales/translations';
-import { initialProducts } from './data/initialProducts';
-import './App.css';
+import { getTranslations } from './i18n/languages';
+import { INITIAL_HERITAGE_PRODUCTS } from './data/heritageCatalog';
+import { getAiConfig, fetchServerAiStatus } from './ai/aiService';
+import { ORDER_STATUS } from './utils/orderEngine';
+
+function readStored(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function App() {
-  // 1. Language state (en, hi, bn, etc.)
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('sih_lang') || 'en';
-  });
+  // 1. Intro cinematic video splash (plays start.mp4 on load, replayable anytime)
+  const [showIntro, setShowIntro] = useState(true);
 
-  // 2. Auth & Page navigation state
-  const [phone, setPhone] = useState(() => {
-    return localStorage.getItem('sih_phone') || '';
-  });
-  const [currentPage, setCurrentPage] = useState(1);
+  // 2. Language across 15 Indian languages
+  const [language, setLanguage] = useState(() => localStorage.getItem('kb_v2_lang') || 'en');
+
+  // 3. Navigation & Auth
+  const [phone, setPhone] = useState(() => localStorage.getItem('kb_v2_phone') || '');
+  const [currentPage, setCurrentPage] = useState(1); // 1: Onboarding | 2: Role | 3: Workspace
   const [role, setRole] = useState(null); // 'karigar' | 'buyer'
 
-  // 3. Profiles
-  const [karigarProfile, setKarigarProfile] = useState(() => {
-    const saved = localStorage.getItem('sih_karigar_profile');
-    return saved ? JSON.parse(saved) : { name: '', location: '' };
-  });
+  // 4. Profiles
+  const [karigarProfile, setKarigarProfile] = useState(() =>
+    readStored('kb_v2_karigar', { name: '', location: '' })
+  );
+  const [buyerProfile, setBuyerProfile] = useState(() =>
+    readStored('kb_v2_buyer', { name: 'Aditi Sharma', location: 'Bengaluru, Karnataka' })
+  );
 
-  const [buyerProfile, setBuyerProfile] = useState(() => {
-    const saved = localStorage.getItem('sih_buyer_profile');
-    return saved ? JSON.parse(saved) : { name: 'Aditi Sharma', location: 'Bengaluru, Karnataka' };
-  });
+  // 5. Shared Marketplace Catalog, Orders, Cart & Wishlist
+  const [products, setProducts] = useState(() =>
+    readStored('kb_v2_products', INITIAL_HERITAGE_PRODUCTS)
+  );
+  const [orders, setOrders] = useState(() => readStored('kb_v2_orders', []));
+  const [cartItems, setCartItems] = useState(() => readStored('kb_v2_cart', []));
+  const [wishlist, setWishlist] = useState(() => readStored('kb_v2_wishlist', []));
 
-  // 4. Products Catalog (Shared state between Karigar & Buyer)
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('sih_products');
-    return saved ? JSON.parse(saved) : initialProducts;
-  });
-
-  // 5. Cart & Checkout State
-  const [cartItems, setCartItems] = useState(() => {
-    const saved = localStorage.getItem('sih_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // 6. Modals & Drawers
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutItems, setCheckoutItems] = useState([]);
+  const [checkoutSource, setCheckoutSource] = useState('cart'); // 'cart' | 'buynow'
 
-  // Sync to local storage
+  // 7. Provider-Agnostic AI Status
+  const [aiConfig, setAiConfig] = useState(getAiConfig);
+  const [serverAiKeys, setServerAiKeys] = useState({});
+
   useEffect(() => {
-    localStorage.setItem('sih_lang', language);
+    fetchServerAiStatus().then((status) => {
+      setServerAiKeys(status.serverKeysConfigured || {});
+    });
+  }, []);
+
+  // Persist states
+  useEffect(() => {
+    localStorage.setItem('kb_v2_lang', language);
   }, [language]);
 
   useEffect(() => {
-    if (phone) localStorage.setItem('sih_phone', phone);
+    if (phone) localStorage.setItem('kb_v2_phone', phone);
   }, [phone]);
 
   useEffect(() => {
-    localStorage.setItem('sih_karigar_profile', JSON.stringify(karigarProfile));
+    localStorage.setItem('kb_v2_karigar', JSON.stringify(karigarProfile));
   }, [karigarProfile]);
 
   useEffect(() => {
-    localStorage.setItem('sih_buyer_profile', JSON.stringify(buyerProfile));
+    localStorage.setItem('kb_v2_buyer', JSON.stringify(buyerProfile));
   }, [buyerProfile]);
 
   useEffect(() => {
-    localStorage.setItem('sih_products', JSON.stringify(products));
+    localStorage.setItem('kb_v2_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('sih_cart', JSON.stringify(cartItems));
+    localStorage.setItem('kb_v2_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('kb_v2_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Current translation dictionary
-  const t = translations[language] || translations.en;
+  useEffect(() => {
+    localStorage.setItem('kb_v2_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
 
-  // Cart operations
+  const t = getTranslations(language);
+  const cartTotalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const pendingOrdersCount = orders.filter((o) => o.status === ORDER_STATUS.PENDING_KARIGAR).length;
+  const hasLiveAiKey = Boolean(aiConfig?.apiKey?.trim()) || Boolean(serverAiKeys?.[aiConfig?.provider || 'grok']);
+
+  // Cart & Product Handlers
   const handleAddToCart = (product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -85,75 +115,91 @@ export default function App() {
         return prev.map((item) =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
-      } else {
-        return [...prev, { ...product, quantity: 1 }];
       }
+      return [...prev, { ...product, quantity: 1 }];
     });
   };
 
-  const handleUpdateQuantity = (productId, newQty) => {
-    if (newQty <= 0) {
-      handleRemoveItem(productId);
+  const handleUpdateQuantity = (productId, qty) => {
+    if (qty <= 0) {
+      setCartItems((prev) => prev.filter((item) => item.id !== productId));
       return;
     }
     setCartItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, quantity: newQty } : item))
+      prev.map((item) => (item.id === productId ? { ...item, quantity: qty } : item))
     );
   };
 
-  const handleRemoveItem = (productId) => {
+  const handleRemoveCartItem = (productId) => {
     setCartItems((prev) => prev.filter((item) => item.id !== productId));
   };
 
-  // Immediate "Buy Now" handler (opens checkout directly with 1 item)
   const handleBuyNow = (product) => {
     setCheckoutItems([{ ...product, quantity: 1 }]);
+    setCheckoutSource('buynow');
     setIsCheckoutOpen(true);
   };
 
-  // Proceed to checkout with all cart items
   const handleProceedFromCart = () => {
     setCheckoutItems(cartItems);
+    setCheckoutSource('cart');
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
 
-  // Add newly listed product by Karigar
-  const handleAddProduct = (newProduct) => {
-    setProducts((prev) => [newProduct, ...prev]);
-  };
-
-  // Order success cleanup
-  const handleOrderSuccess = () => {
-    // If checkout items were from cart, clear cart
-    if (checkoutItems.length === cartItems.length) {
+  const handleOrderCreated = (newOrder) => {
+    setOrders((prev) => [newOrder, ...prev]);
+    if (checkoutSource === 'cart') {
       setCartItems([]);
     }
   };
 
-  const cartTotalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const handleAddProduct = (craft) => {
+    setProducts((prev) => [craft, ...prev]);
+  };
+
+  const handleDeleteProduct = (craftId) => {
+    setProducts((prev) => prev.filter((p) => p.id !== craftId));
+  };
+
+  const handleToggleWishlist = (productId) => {
+    setWishlist((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col font-sans text-stone-900 selection:bg-amber-100 selection:text-amber-900">
-      
-      {/* Global Application Header */}
-      <Header
+    <div className="min-h-screen flex flex-col relative" dir={language === 'ur' ? 'rtl' : 'ltr'}>
+      {/* Fixed Full-Screen Artisan Workbench Background + Warm Veil */}
+      <div className="atelier-backdrop" aria-hidden="true" />
+      <div className="atelier-veil" aria-hidden="true" />
+
+      {/* Fullscreen Cinematic Intro Video (start.mp4) */}
+      {showIntro && <IntroSplash onFinish={() => setShowIntro(false)} t={t} />}
+
+      {/* Floating Royal Indigo Header */}
+      <AtelierHeader
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         role={role}
         setRole={setRole}
         language={language}
-        setLanguage={setLanguage}
         t={t}
         phone={phone}
         cartCount={cartTotalCount}
-        setIsCartOpen={setIsCartOpen}
+        pendingOrdersCount={pendingOrdersCount}
+        aiConfig={aiConfig}
+        hasLiveAiKey={hasLiveAiKey}
+        onOpenLanguage={() => setIsLanguageOpen(true)}
+        onOpenAiSettings={() => setIsAiSettingsOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onReplayIntro={() => setShowIntro(true)}
       />
 
-      {/* Main Multi-Page Container */}
-      <main className="flex-1">
+      {/* Active Page Workspace */}
+      <main className="flex-1 pb-10">
         {currentPage === 1 && (
-          <Page1Auth
+          <OnboardingView
             language={language}
             setLanguage={setLanguage}
             phone={phone}
@@ -164,9 +210,9 @@ export default function App() {
         )}
 
         {currentPage === 2 && (
-          <Page2Role
-            onSelectRole={(selectedRole) => {
-              setRole(selectedRole);
+          <RoleSelectorView
+            onSelectRole={(selected) => {
+              setRole(selected);
               setCurrentPage(3);
             }}
             onBack={() => setCurrentPage(1)}
@@ -176,11 +222,14 @@ export default function App() {
         )}
 
         {currentPage === 3 && role === 'karigar' && (
-          <Page3Karigar
+          <KarigarStudioView
             karigarProfile={karigarProfile}
             setKarigarProfile={setKarigarProfile}
             products={products}
             onAddProduct={handleAddProduct}
+            onDeleteProduct={handleDeleteProduct}
+            orders={orders}
+            setOrders={setOrders}
             onSwitchToBuyer={() => setRole('buyer')}
             onBack={() => setCurrentPage(2)}
             language={language}
@@ -189,57 +238,73 @@ export default function App() {
         )}
 
         {currentPage === 3 && role === 'buyer' && (
-          <Page3Buyer
+          <BuyerMarketplaceView
             buyerProfile={buyerProfile}
             setBuyerProfile={setBuyerProfile}
             products={products}
+            orders={orders}
+            wishlist={wishlist}
+            onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onSwitchToKarigar={() => setRole('karigar')}
             onBack={() => setCurrentPage(2)}
+            language={language}
             t={t}
           />
         )}
       </main>
 
-      {/* Slide-out Cart Drawer */}
+      {/* Regal Translucent Footer */}
+      <footer className="px-4 sm:px-6 pb-5">
+        <div className="max-w-7xl mx-auto indigo-glass rounded-2xl px-5 py-4 text-[#f7f1e3]/80 text-xs flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div>
+            © 2026 <strong className="text-[#faf4e8]">KarigarBazaar</strong> — Royal Indian Artisan Atelier (SIH 2026)
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px]">
+            <span>15 Indian Languages</span>
+            <span className="text-[#c88d28]">•</span>
+            <span>Provider-Agnostic AI (Grok / Gemini)</span>
+            <span className="text-[#c88d28]">•</span>
+            <span>0% Middleman Commerce</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Global Modals & Drawers */}
+      <LanguageModal
+        isOpen={isLanguageOpen}
+        onClose={() => setIsLanguageOpen(false)}
+        language={language}
+        setLanguage={setLanguage}
+        t={t}
+      />
+
+      <AiSettingsModal
+        isOpen={isAiSettingsOpen}
+        onClose={() => setIsAiSettingsOpen(false)}
+        onConfigChange={(updated) => setAiConfig(updated)}
+      />
+
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
         onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
+        onRemoveItem={handleRemoveCartItem}
         onProceedToCheckout={handleProceedFromCart}
         t={t}
       />
 
-      {/* Checkout / Payment Modal */}
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         itemsToBuy={checkoutItems}
         buyerProfile={buyerProfile}
         phone={phone}
-        onOrderSuccess={handleOrderSuccess}
+        onOrderCreated={handleOrderCreated}
         t={t}
       />
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-stone-200 py-6 text-center text-xs text-stone-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>
-            © 2026 <strong>KarigarBazaar</strong> — Smart India Hackathon (SIH 2026).
-          </div>
-          <div className="flex items-center gap-4 text-stone-400">
-            <span>Direct Artisan Commerce</span>
-            <span>•</span>
-            <span>Vocal for Local</span>
-            <span>•</span>
-            <span>Zero Middleman</span>
-          </div>
-        </div>
-      </footer>
-
     </div>
   );
 }

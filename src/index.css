@@ -1,27 +1,161 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --kb-indigo: #1b365d;
+    --kb-indigo-deep: #11233e;
+    --kb-terracotta: #b54426;
+    --kb-terracotta-dark: #8e3118;
+    --kb-gold: #c88d28;
+    --kb-parchment: #f7f1e3;
+    --kb-parchment-deep: #ede1ca;
+    --kb-teak: #2c1d13;
+    --kb-ink: #3c2a1e;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
   body {
-    @apply bg-stone-50 text-stone-800 antialiased min-h-screen selection:bg-amber-100 selection:text-amber-900;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    color: var(--kb-teak);
+    background-color: #1c130d;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
-/* Custom scrollbar */
+.font-display {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-heritage {
+  font-family: 'Rozha One', 'Cormorant Garamond', serif;
+}
+
+/* Full-viewport fixed artisan workbench backdrop */
+.atelier-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: url('/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
+}
+
+/* Warm translucent veil so background art remains visible while keeping contrast crisp */
+.atelier-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(200, 141, 40, 0.16), transparent 50%),
+    radial-gradient(circle at 80% 90%, rgba(27, 54, 93, 0.25), transparent 55%),
+    linear-gradient(180deg, rgba(28, 19, 13, 0.58) 0%, rgba(28, 19, 13, 0.44) 45%, rgba(28, 19, 13, 0.68) 100%);
+  backdrop-filter: blur(2.5px);
+}
+
+/* Frosted Handmade Parchment Card */
+.parchment-card {
+  background: linear-gradient(180deg, rgba(250, 245, 236, 0.94) 0%, rgba(243, 234, 217, 0.92) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 141, 40, 0.34);
+  box-shadow:
+    0 20px 45px -18px rgba(24, 14, 7, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+/* Lighter inner paper surface */
+.parchment-surface {
+  background: rgba(255, 252, 245, 0.85);
+  border: 1px solid rgba(181, 68, 38, 0.16);
+}
+
+/* Deep Royal Indigo Glass Panel */
+.indigo-glass {
+  background: linear-gradient(135deg, rgba(27, 54, 93, 0.94) 0%, rgba(17, 35, 62, 0.96) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 141, 40, 0.35);
+  box-shadow: 0 20px 45px -15px rgba(10, 20, 38, 0.55);
+}
+
+/* Terracotta Heritage Button */
+.btn-terracotta {
+  background: linear-gradient(135deg, #c24b28 0%, #9b3519 100%);
+  color: #fff9f2;
+  border: 1px solid rgba(255, 214, 153, 0.25);
+  box-shadow: 0 8px 20px -6px rgba(181, 68, 38, 0.55);
+  transition: all 0.2s ease;
+}
+.btn-terracotta:hover {
+  background: linear-gradient(135deg, #d1542f 0%, #ab3c1e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -6px rgba(181, 68, 38, 0.65);
+}
+
+/* Royal Indigo Button */
+.btn-indigo {
+  background: linear-gradient(135deg, #224475 0%, #152b4c 100%);
+  color: #fff9f2;
+  border: 1px solid rgba(200, 141, 40, 0.35);
+  box-shadow: 0 8px 20px -6px rgba(21, 43, 76, 0.55);
+  transition: all 0.2s ease;
+}
+.btn-indigo:hover {
+  background: linear-gradient(135deg, #2a538d 0%, #1a355d 100%);
+  transform: translateY(-1px);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(181, 68, 38, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(181, 68, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(181, 68, 38, 0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-mic-pulse {
+  animation: pulseRing 1.5s infinite;
+}
+
+/* Custom warm scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(44, 29, 19, 0.25);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #d6d3d1;
-  border-radius: 4px;
+  background: rgba(200, 141, 40, 0.55);
+  border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a29e;
+  background: rgba(181, 68, 38, 0.78);
 }
