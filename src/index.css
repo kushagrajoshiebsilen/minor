@@ -19,7 +19,7 @@
 
   body {
     margin: 0;
-    background-color: var(--kb-cream);
+    background-color: transparent;
     color: var(--kb-indigo);
     min-height: 100vh;
     overflow-x: hidden;
@@ -35,7 +35,7 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Full-viewport fixed workbench background across whole website */
+/* Full-viewport fixed artisan workbench background across the whole website */
 .site-backdrop {
   position: fixed;
   inset: 0;
@@ -44,32 +44,27 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  transform: scale(1.02);
+  pointer-events: none;
 }
 
-/* Translucent cream veil so background image stays visible everywhere while text remains legible */
+/* Ultra-light translucent wash so workbench wood texture, tools & pottery are clearly visible */
 .site-veil {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(
-    180deg,
-    rgba(246, 239, 228, 0.88) 0%,
-    rgba(246, 239, 228, 0.82) 40%,
-    rgba(246, 239, 228, 0.89) 100%
-  );
-  backdrop-filter: blur(1.5px);
+  background: rgba(246, 239, 228, 0.28);
+  pointer-events: none;
 }
 
-/* Section styling with subtle transparency */
+/* Glassy editorial paper containers that let the artisan workbench show through */
 .bg-cream {
-  background-color: rgba(246, 239, 228, 0.85);
+  background-color: rgba(246, 239, 228, 0.65);
 }
 
 .bg-cream-cloth {
-  background-color: rgba(236, 227, 210, 0.85);
-  background-image: radial-gradient(#D8CCA6 0.75px, transparent 0.75px);
-  background-size: 16px 16px;
+  background-color: rgba(236, 227, 210, 0.60);
+  background-image: radial-gradient(#B5532A 0.5px, transparent 0.5px);
+  background-size: 20px 20px;
 }
 
 /* Clean Editorial Button (Terracotta primary) */
@@ -93,7 +88,8 @@
 
 /* Secondary Editorial Button (Indigo outlined / ghost) */
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(4px);
   color: #2B3A67;
   border: 1px solid #2B3A67;
   border-radius: 4px;
@@ -112,11 +108,11 @@
   color: #F6EFE4;
 }
 
-/* Quiet Product Card with paper backdrop */
+/* Quiet Product Card with translucent paper backdrop */
 .craft-card {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid #E4D9C8;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(228, 217, 200, 0.85);
   border-radius: 4px;
   overflow: hidden;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
@@ -124,7 +120,7 @@
 .craft-card:hover {
   border-color: #B5532A;
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -10px rgba(43, 58, 103, 0.15);
+  box-shadow: 0 12px 30px -10px rgba(43, 58, 103, 0.2);
 }
 
 /* Slim scrollbar */
@@ -133,7 +129,7 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F6EFE4;
+  background: rgba(246, 239, 228, 0.5);
 }
 ::-webkit-scrollbar-thumb {
   background: #D9A441;

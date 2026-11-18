@@ -41,12 +41,12 @@ export default function EditorialLandingView({
 
   return (
     <div className="w-full flex flex-col">
-      {/* 1. HERO SECTION (full-width workbench background with left-to-right cream gradient) */}
+      {/* 1. HERO SECTION (workbench background shines through with a light left focus wash) */}
       <section className="relative w-full min-h-[85vh] flex items-center overflow-hidden">
-        {/* Left-to-right cream gradient overlay for hero focus */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F6EFE4] via-[#F6EFE4]/90 to-transparent" />
+        {/* Soft gradient wash so text stays legible on left while workbench image shines through */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#F6EFE4]/90 via-[#F6EFE4]/50 to-transparent pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-20 w-full">
+        <div className="relative max-w-7xl mx-auto px-6 py-20 w-full z-10">
           <div className="max-w-2xl space-y-6">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#B5532A]">
               {t.heroSubtitle}
@@ -58,7 +58,7 @@ export default function EditorialLandingView({
             </h1>
 
             {/* One line below it */}
-            <p className="text-lg text-[#2B3A67]/85 leading-relaxed font-normal">
+            <p className="text-lg text-[#2B3A67] font-medium leading-relaxed">
               {t.heroDesc}
             </p>
 
@@ -67,7 +67,7 @@ export default function EditorialLandingView({
               <button
                 type="button"
                 onClick={onStartSelling}
-                className="btn-terracotta"
+                className="btn-terracotta shadow-md"
               >
                 <span>{t.startSelling}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -76,7 +76,7 @@ export default function EditorialLandingView({
               <button
                 type="button"
                 onClick={onBrowseCrafts}
-                className="btn-secondary"
+                className="btn-secondary shadow-xs"
               >
                 <span>{t.browseCrafts}</span>
               </button>
@@ -85,8 +85,8 @@ export default function EditorialLandingView({
         </div>
       </section>
 
-      {/* 2. THE PROBLEM IN ONE LINE (Plain cream) */}
-      <section className="w-full bg-[#F6EFE4]/90 backdrop-blur-xs border-t border-[#E4D9C8] py-16">
+      {/* 2. THE PROBLEM IN ONE LINE (Translucent frosted cream) */}
+      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-16">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <p className="font-display text-2xl sm:text-3xl italic text-[#2B3A67] leading-relaxed">
             {t.problemQuote}
@@ -95,7 +95,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 3. HOW IT WORKS (Cream cloth texture with a thin thread line) */}
-      <section id="how-it-works" className="w-full bg-cream-cloth backdrop-blur-xs border-t border-[#E4D9C8] py-24">
+      <section id="how-it-works" className="w-full bg-cream-cloth backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-xl mb-16">
             <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
@@ -115,7 +115,7 @@ export default function EditorialLandingView({
               <div className="w-12 h-12 rounded-sm bg-[#F6EFE4] border border-[#D9A441] text-[#B5532A] flex items-center justify-center font-display text-lg font-bold shadow-xs">
                 1
               </div>
-              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white">
+              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white shadow-xs">
                 <img
                   src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=700&q=80"
                   alt="Speak in regional dialect"
@@ -125,7 +125,7 @@ export default function EditorialLandingView({
               <h3 className="font-display text-2xl font-semibold text-[#2B3A67]">
                 {t.step1Title}
               </h3>
-              <p className="text-sm text-[#2B3A67]/80 leading-relaxed">
+              <p className="text-sm text-[#2B3A67]/90 leading-relaxed font-normal">
                 {t.step1Desc}
               </p>
             </div>
@@ -135,7 +135,7 @@ export default function EditorialLandingView({
               <div className="w-12 h-12 rounded-sm bg-[#F6EFE4] border border-[#D9A441] text-[#B5532A] flex items-center justify-center font-display text-lg font-bold shadow-xs">
                 2
               </div>
-              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white">
+              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white shadow-xs">
                 <img
                   src="https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=700&q=80"
                   alt="Snap a phone photo"
@@ -145,7 +145,7 @@ export default function EditorialLandingView({
               <h3 className="font-display text-2xl font-semibold text-[#2B3A67]">
                 {t.step2Title}
               </h3>
-              <p className="text-sm text-[#2B3A67]/80 leading-relaxed">
+              <p className="text-sm text-[#2B3A67]/90 leading-relaxed font-normal">
                 {t.step2Desc}
               </p>
             </div>
@@ -155,7 +155,7 @@ export default function EditorialLandingView({
               <div className="w-12 h-12 rounded-sm bg-[#F6EFE4] border border-[#D9A441] text-[#B5532A] flex items-center justify-center font-display text-lg font-bold shadow-xs">
                 3
               </div>
-              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white">
+              <div className="aspect-[4/3] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white shadow-xs">
                 <img
                   src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80"
                   alt="Sell directly to buyers"
@@ -165,7 +165,7 @@ export default function EditorialLandingView({
               <h3 className="font-display text-2xl font-semibold text-[#2B3A67]">
                 {t.step3Title}
               </h3>
-              <p className="text-sm text-[#2B3A67]/80 leading-relaxed">
+              <p className="text-sm text-[#2B3A67]/90 leading-relaxed font-normal">
                 {t.step3Desc}
               </p>
             </div>
@@ -173,8 +173,8 @@ export default function EditorialLandingView({
         </div>
       </section>
 
-      {/* 4. BEFORE / AFTER PHOTO SLIDER (Plain cream) */}
-      <section className="w-full bg-[#F6EFE4]/90 backdrop-blur-xs border-t border-[#E4D9C8] py-24">
+      {/* 4. BEFORE / AFTER PHOTO SLIDER (Plain translucent cream) */}
+      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center max-w-xl mx-auto mb-12">
             <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
@@ -183,13 +183,13 @@ export default function EditorialLandingView({
             <h2 className="font-display text-4xl font-semibold text-[#2B3A67] mt-2">
               {t.sliderTitle}
             </h2>
-            <p className="text-sm text-[#2B3A67]/75 mt-2">
+            <p className="text-sm text-[#2B3A67]/80 mt-2">
               {t.sliderDesc}
             </p>
           </div>
 
           {/* Interactive slider */}
-          <div className="relative aspect-[16/10] max-w-4xl mx-auto overflow-hidden rounded-sm border border-[#E4D9C8] select-none shadow-sm bg-white">
+          <div className="relative aspect-[16/10] max-w-4xl mx-auto overflow-hidden rounded-sm border border-[#E4D9C8] select-none shadow-md bg-white">
             {/* After image */}
             <img
               src="https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=85"
@@ -240,7 +240,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 5. SHOP BY CRAFT (5 tall photo cards) */}
-      <section className="w-full bg-cream-cloth backdrop-blur-xs border-t border-[#E4D9C8] py-24">
+      <section className="w-full bg-cream-cloth backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
@@ -266,7 +266,7 @@ export default function EditorialLandingView({
               <div
                 key={card.title}
                 onClick={onBrowseCrafts}
-                className="group relative h-96 rounded-sm overflow-hidden border border-[#E4D9C8] cursor-pointer bg-white"
+                className="group relative h-96 rounded-sm overflow-hidden border border-[#E4D9C8] cursor-pointer bg-white shadow-sm"
               >
                 <img
                   src={card.image}
@@ -287,11 +287,11 @@ export default function EditorialLandingView({
         </div>
       </section>
 
-      {/* 6. ARTISAN OF THE MONTH (Plain cream) */}
-      <section className="w-full bg-[#F6EFE4]/90 backdrop-blur-xs border-t border-[#E4D9C8] py-24">
+      {/* 6. ARTISAN OF THE MONTH */}
+      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-5 aspect-[4/5] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white">
+            <div className="lg:col-span-5 aspect-[4/5] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white shadow-sm">
               <img
                 src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=900&q=80"
                 alt="Sitadevi Paswan at her workspace"
@@ -308,7 +308,7 @@ export default function EditorialLandingView({
                 Sitadevi Paswan
               </h2>
 
-              <p className="text-sm font-medium text-[#2B3A67]/70">
+              <p className="text-sm font-semibold text-[#2B3A67]/80">
                 Mithila Master Painter • Jitwarpur, Bihar
               </p>
 
@@ -316,7 +316,7 @@ export default function EditorialLandingView({
                 {t.artisanMonthQuote}
               </blockquote>
 
-              <p className="text-sm text-[#2B3A67]/80 leading-relaxed">
+              <p className="text-sm text-[#2B3A67] leading-relaxed font-normal">
                 {t.artisanMonthBio}
               </p>
 
@@ -336,7 +336,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 7. FOR BUYERS AND WHOLESALERS (Cream cloth texture) */}
-      <section className="w-full bg-cream-cloth backdrop-blur-xs border-t border-[#E4D9C8] py-24">
+      <section className="w-full bg-cream-cloth backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
           <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
             {t.sourcingSubtitle}
@@ -346,7 +346,7 @@ export default function EditorialLandingView({
             {t.sourcingTitle}
           </h2>
 
-          <p className="text-base text-[#2B3A67]/80 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-base text-[#2B3A67] leading-relaxed max-w-2xl mx-auto font-medium">
             {t.sourcingDesc}
           </p>
 
@@ -363,9 +363,9 @@ export default function EditorialLandingView({
         </div>
       </section>
 
-      {/* 8. FOOTER (Plain cream) */}
-      <footer className="w-full bg-[#F6EFE4]/95 backdrop-blur-xs border-t border-[#E4D9C8] py-14">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#2B3A67]/75">
+      {/* 8. FOOTER */}
+      <footer className="w-full bg-[#F6EFE4]/80 backdrop-blur-sm border-t border-[#E4D9C8] py-14">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#2B3A67]">
           <div className="flex items-center gap-3">
             <span className="font-display text-xl font-bold text-[#2B3A67]">{t.appName}</span>
             <span>—</span>

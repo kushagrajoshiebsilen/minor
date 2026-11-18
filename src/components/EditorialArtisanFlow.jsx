@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Camera,
   Mic,
@@ -11,6 +11,7 @@ import {
   Share2,
   Sliders,
   Check,
+  AlertCircle,
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, getLanguageMeta, getTranslations } from '../i18n/languages';
 import { speakText, stopSpeaking, createSpeechRecognizer, isSpeechRecognitionSupported } from '../utils/speechEngine';
@@ -51,7 +52,10 @@ export default function EditorialArtisanFlow({
     price: '',
   });
   const [isRecording, setIsRecording] = useState(false);
+  const [micError, setMicError] = useState('');
   const [waveformLevels, setWaveformLevels] = useState([12, 24, 18, 30, 16, 28, 22, 14]);
+
+  const recognizerRef = useRef(null);
 
   // Processing checklist state
   const [checklist, setChecklist] = useState([
@@ -102,18 +106,14 @@ export default function EditorialArtisanFlow({
 
   const activeQuestion = questions[currentQuestionIdx];
 
-  // Play question audio automatically when switching questions
+  // Play question audio automatically on mount or explicit user request
   const askQuestionAloud = (promptText) => {
+    // If user is actively recording, stop mic first to prevent feedback
+    if (isRecording) {
+      stopRecording();
+    }
     speakText(promptText, language);
   };
-
-  // Re-read question aloud on mount or question index change
-  useEffect(() => {
-    if (stage === 'capture') {
-      askQuestionAloud(activeQuestion.prompt);
-    }
-    return () => stopSpeaking();
-  }, [currentQuestionIdx, language, stage]);
 
   // Live waveform animation when recording
   useEffect(() => {
@@ -128,44 +128,81 @@ export default function EditorialArtisanFlow({
     return () => clearInterval(timer);
   }, [isRecording]);
 
+  // Stop recording cleanup helper
+  const stopRecording = () => {
+    if (recognizerRef.current) {
+      try {
+        recognizerRef.current.stop();
+      } catch {
+        // ignore
+      }
+      recognizerRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
   // Mic recording handler for current question
   const handleToggleRecord = () => {
     if (isRecording) {
-      setIsRecording(false);
+      stopRecording();
       return;
     }
+
+    // Always silence any TTS speech before opening mic
     stopSpeaking();
-    setIsSpeakingQuestion(false);
+    setMicError('');
 
     if (!isSpeechRecognitionSupported()) {
-      alert('Speech recognition is supported in Chrome, Edge, and modern Android browsers.');
+      setMicError('Speech recognition works best in Chrome or Edge browser. You can also type directly in the box below.');
       return;
     }
 
-    setIsRecording(true);
-    const rec = createSpeechRecognizer({
-      language,
-      onResult: (text) => {
-        setVoiceAnswers((prev) => ({
-          ...prev,
-          [activeQuestion.key]: prev[activeQuestion.key]
-            ? `${prev[activeQuestion.key]} ${text}`
-            : text,
-        }));
-      },
-      onEnd: () => setIsRecording(false),
-      onError: () => setIsRecording(false),
-    });
     try {
-      rec?.start();
-    } catch {
+      const rec = createSpeechRecognizer({
+        language,
+        onResult: (text) => {
+          setMicError('');
+          setVoiceAnswers((prev) => ({
+            ...prev,
+            [activeQuestion.key]: prev[activeQuestion.key]
+              ? `${prev[activeQuestion.key]} ${text}`
+              : text,
+          }));
+        },
+        onInterim: () => {
+          setMicError('');
+        },
+        onEnd: () => {
+          setIsRecording(false);
+          recognizerRef.current = null;
+        },
+        onError: (err) => {
+          console.warn('Mic recognizer error:', err);
+          if (err === 'not-allowed') {
+            setMicError('Microphone permission blocked. Please allow mic access in your browser or type below.');
+          } else if (err === 'no-speech') {
+            setMicError('No speech detected. Please speak closer to your microphone or type below.');
+          }
+          setIsRecording(false);
+          recognizerRef.current = null;
+        },
+      });
+
+      if (rec) {
+        recognizerRef.current = rec;
+        rec.start();
+        setIsRecording(true);
+      }
+    } catch (e) {
+      console.error('Failed to start recognizer:', e);
       setIsRecording(false);
+      setMicError('Could not start microphone. You can type your answer in the box below.');
     }
   };
 
   // Move to next question or auto advance
   const handleNextQuestion = () => {
-    setIsRecording(false);
+    stopRecording();
     stopSpeaking();
     if (currentQuestionIdx < questions.length - 1) {
       setCurrentQuestionIdx((prev) => prev + 1);
@@ -173,7 +210,7 @@ export default function EditorialArtisanFlow({
   };
 
   const handlePrevQuestion = () => {
-    setIsRecording(false);
+    stopRecording();
     stopSpeaking();
     if (currentQuestionIdx > 0) {
       setCurrentQuestionIdx((prev) => prev - 1);
@@ -196,10 +233,9 @@ export default function EditorialArtisanFlow({
   // Start processing flow
   const handleStartProcessing = async () => {
     stopSpeaking();
-    setIsRecording(false);
+    stopRecording();
     setStage('processing');
 
-    // Simulate step by step progress
     const steps = [
       { id: 1, delay: 600 },
       { id: 2, delay: 1200 },
@@ -216,7 +252,6 @@ export default function EditorialArtisanFlow({
       }, delay);
     });
 
-    // Run AI inspection in parallel
     try {
       const res = await inspectCraftImage({
         imageDataUrl: capturedPhoto,
@@ -324,11 +359,11 @@ export default function EditorialArtisanFlow({
   ];
 
   return (
-    <div className="w-full bg-[#F6EFE4]/85 backdrop-blur-xs min-h-[90vh]">
-      {/* 1. ARTISAN REGISTRATION / PROFILE MODAL (collected once) */}
+    <div className="w-full bg-[#F6EFE4]/80 backdrop-blur-xs min-h-[90vh]">
+      {/* 1. ARTISAN REGISTRATION / PROFILE MODAL */}
       {profileOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6">
-          <div className="w-full max-w-md bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6 shadow-xl">
+          <div className="w-full max-w-md bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6 shadow-2xl">
             <div>
               <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
                 {t.craftWorkspace}
@@ -378,7 +413,7 @@ export default function EditorialArtisanFlow({
         </div>
       )}
 
-      {/* STAGE 1: CAPTURE SCREEN (Two very large tiles: Snap & Conversational Speak Q&A) */}
+      {/* STAGE 1: CAPTURE SCREEN */}
       {stage === 'capture' && (
         <section className="max-w-7xl mx-auto px-6 py-14">
           {/* Greeting */}
@@ -407,7 +442,7 @@ export default function EditorialArtisanFlow({
           {/* Two Very Large Tiles Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* TILE 1: SNAP (Camera / Upload) */}
-            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px]">
+            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px] shadow-sm">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
@@ -453,7 +488,7 @@ export default function EditorialArtisanFlow({
             </div>
 
             {/* TILE 2: CONVERSATIONAL VOICE ASSISTANT (Asks questions one by one) */}
-            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px]">
+            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px] shadow-sm">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
@@ -462,7 +497,11 @@ export default function EditorialArtisanFlow({
                   {/* Dialect selector */}
                   <select
                     value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    onChange={(e) => {
+                      stopSpeaking();
+                      stopRecording();
+                      setLanguage(e.target.value);
+                    }}
                     className="text-xs font-semibold text-[#2B3A67] bg-[#F6EFE4] border border-[#E4D9C8] px-2.5 py-1 rounded-sm cursor-pointer"
                   >
                     {SUPPORTED_LANGUAGES.map((l) => (
@@ -481,7 +520,7 @@ export default function EditorialArtisanFlow({
               </div>
 
               {/* Active Question Box & Waveform */}
-              <div className="aspect-[4/3] rounded-sm border border-[#E4D9C8] bg-cream-cloth p-6 flex flex-col justify-between">
+              <div className="rounded-sm border border-[#E4D9C8] bg-cream-cloth p-6 flex flex-col justify-between space-y-4">
                 {/* Question Header & Read Aloud button */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-[#B5532A]">
@@ -491,7 +530,8 @@ export default function EditorialArtisanFlow({
                     <button
                       type="button"
                       onClick={() => askQuestionAloud(activeQuestion.prompt)}
-                      className="flex items-center gap-1 text-[#2B3A67] hover:text-[#B5532A] cursor-pointer"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/80 border border-[#E4D9C8] text-[#2B3A67] hover:text-[#B5532A] cursor-pointer"
+                      title="Read question in chosen dialect"
                     >
                       <Volume2 className="w-3.5 h-3.5 text-[#D9A441]" />
                       <span className="text-[11px] font-medium">{t.replayQuestion}</span>
@@ -501,43 +541,57 @@ export default function EditorialArtisanFlow({
                   <h3 className="font-display text-2xl font-bold text-[#2B3A67] leading-snug">
                     {activeQuestion.prompt}
                   </h3>
-                  <p className="text-xs text-[#2B3A67]/70 italic">
+                  <p className="text-xs text-[#2B3A67]/75 italic">
                     {activeQuestion.desc}
                   </p>
                 </div>
 
-                {/* Spoken Answer & Waveform */}
-                <div className="space-y-3 pt-3 border-t border-[#E4D9C8]">
+                {/* Spoken Answer & Editable fallback field */}
+                <div className="space-y-3 pt-2 border-t border-[#E4D9C8]">
                   {/* Waveform */}
-                  <div className="h-10 flex items-center gap-1.5 justify-center">
+                  <div className="h-8 flex items-center gap-1.5 justify-center">
                     {waveformLevels.map((lvl, idx) => (
                       <div
                         key={idx}
                         className="w-1.5 rounded-full transition-all duration-100"
                         style={{
-                          height: isRecording ? `${lvl}px` : '5px',
+                          height: isRecording ? `${lvl}px` : '4px',
                           backgroundColor: isRecording ? '#B5532A' : '#D9A441',
                         }}
                       />
                     ))}
                   </div>
 
-                  {/* Transcribed text for this question */}
-                  <div className="min-h-12 bg-white/80 p-2.5 rounded-sm border border-[#E4D9C8] text-xs text-[#2B3A67]">
-                    {voiceAnswers[activeQuestion.key] ? (
-                      <span className="font-medium text-[#2B3A67]">
-                        “{voiceAnswers[activeQuestion.key]}”
-                      </span>
-                    ) : isRecording ? (
-                      <span className="text-[#B5532A] font-semibold animate-pulse">
-                        {t.voiceActivePrompt}
-                      </span>
-                    ) : (
-                      <span className="text-[#2B3A67]/50">
-                        {t.speakAnswer} in {langMeta.nativeName}...
-                      </span>
-                    )}
+                  {/* Input / Transcribed text */}
+                  <div>
+                    <input
+                      type="text"
+                      value={voiceAnswers[activeQuestion.key]}
+                      onChange={(e) =>
+                        setVoiceAnswers((prev) => ({
+                          ...prev,
+                          [activeQuestion.key]: e.target.value,
+                        }))
+                      }
+                      placeholder={
+                        isRecording
+                          ? 'Listening... speak clearly into your mic'
+                          : `Speak or type your answer in ${langMeta.nativeName}...`
+                      }
+                      className={`w-full px-3.5 py-2.5 rounded-sm border text-xs text-[#2B3A67] bg-white transition ${
+                        isRecording
+                          ? 'border-[#B5532A] ring-2 ring-[#B5532A]/20 font-medium'
+                          : 'border-[#E4D9C8] focus:border-[#B5532A]'
+                      }`}
+                    />
                   </div>
+
+                  {micError && (
+                    <div className="p-2.5 rounded-sm bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>{micError}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Question Navigation Stepper */}
@@ -558,7 +612,7 @@ export default function EditorialArtisanFlow({
                         key={q.id}
                         type="button"
                         onClick={() => {
-                          setIsRecording(false);
+                          stopRecording();
                           stopSpeaking();
                           setCurrentQuestionIdx(idx);
                         }}
@@ -597,17 +651,17 @@ export default function EditorialArtisanFlow({
               <button
                 type="button"
                 onClick={handleToggleRecord}
-                className={`w-full py-3.5 rounded-sm font-medium flex items-center justify-center gap-2 cursor-pointer transition ${
+                className={`w-full py-3.5 rounded-sm font-semibold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm ${
                   isRecording
-                    ? 'bg-[#B5532A] text-white shadow-md'
+                    ? 'bg-[#B5532A] text-white ring-2 ring-[#B5532A]/30 animate-pulse'
                     : 'bg-[#F6EFE4] border border-[#E4D9C8] text-[#2B3A67] hover:border-[#B5532A]'
                 }`}
               >
                 {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-[#B5532A]" />}
                 <span>
                   {isRecording
-                    ? 'Finished answering this question'
-                    : `Speak answer to Question ${currentQuestionIdx + 1}`}
+                    ? 'Tap to stop listening'
+                    : `Tap to speak answer for Question ${currentQuestionIdx + 1}`}
                 </span>
               </button>
             </div>
@@ -618,7 +672,7 @@ export default function EditorialArtisanFlow({
             <button
               type="button"
               onClick={handleStartProcessing}
-              className="btn-terracotta px-12 py-4 text-base font-semibold shadow-sm"
+              className="btn-terracotta px-12 py-4 text-base font-semibold shadow-md"
             >
               <span>{t.createMyCatalogue}</span>
               <ArrowRight className="w-5 h-5" />
