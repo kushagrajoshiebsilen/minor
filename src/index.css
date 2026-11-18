@@ -2,160 +2,112 @@
 
 @layer base {
   :root {
-    --kb-indigo: #1b365d;
-    --kb-indigo-deep: #11233e;
-    --kb-terracotta: #b54426;
-    --kb-terracotta-dark: #8e3118;
-    --kb-gold: #c88d28;
-    --kb-parchment: #f7f1e3;
-    --kb-parchment-deep: #ede1ca;
-    --kb-teak: #2c1d13;
-    --kb-ink: #3c2a1e;
+    --kb-cream: #F6EFE4;
+    --kb-cream-cloth: #EEE6D8;
+    --kb-indigo: #2B3A67;
+    --kb-terracotta: #B5532A;
+    --kb-terracotta-dark: #973F1C;
+    --kb-ochre: #D9A441;
+    --kb-muted: #6B7280;
+    --kb-border: #E4D9C8;
   }
 
   html {
     scroll-behavior: smooth;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   body {
     margin: 0;
-    color: var(--kb-teak);
-    background-color: #1c130d;
+    background-color: var(--kb-cream);
+    color: var(--kb-indigo);
     min-height: 100vh;
     overflow-x: hidden;
   }
 }
 
+/* Typography */
 .font-display {
   font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
-.font-heritage {
-  font-family: 'Rozha One', 'Cormorant Garamond', serif;
+.font-body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Full-viewport fixed artisan workbench backdrop */
-.atelier-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background-image: url('/background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  transform: scale(1.02);
+/* Full-width section textures */
+.bg-cream {
+  background-color: #F6EFE4;
 }
 
-/* Warm translucent veil so background art remains visible while keeping contrast crisp */
-.atelier-veil {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(200, 141, 40, 0.16), transparent 50%),
-    radial-gradient(circle at 80% 90%, rgba(27, 54, 93, 0.25), transparent 55%),
-    linear-gradient(180deg, rgba(28, 19, 13, 0.58) 0%, rgba(28, 19, 13, 0.44) 45%, rgba(28, 19, 13, 0.68) 100%);
-  backdrop-filter: blur(2.5px);
+.bg-cream-cloth {
+  background-color: #ECE3D2;
+  background-image: radial-gradient(#D8CCA6 0.75px, transparent 0.75px);
+  background-size: 16px 16px;
 }
 
-/* Frosted Handmade Parchment Card */
-.parchment-card {
-  background: linear-gradient(180deg, rgba(250, 245, 236, 0.94) 0%, rgba(243, 234, 217, 0.92) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(200, 141, 40, 0.34);
-  box-shadow:
-    0 20px 45px -18px rgba(24, 14, 7, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-/* Lighter inner paper surface */
-.parchment-surface {
-  background: rgba(255, 252, 245, 0.85);
-  border: 1px solid rgba(181, 68, 38, 0.16);
-}
-
-/* Deep Royal Indigo Glass Panel */
-.indigo-glass {
-  background: linear-gradient(135deg, rgba(27, 54, 93, 0.94) 0%, rgba(17, 35, 62, 0.96) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(200, 141, 40, 0.35);
-  box-shadow: 0 20px 45px -15px rgba(10, 20, 38, 0.55);
-}
-
-/* Terracotta Heritage Button */
+/* Clean Editorial Button (Terracotta primary) */
 .btn-terracotta {
-  background: linear-gradient(135deg, #c24b28 0%, #9b3519 100%);
-  color: #fff9f2;
-  border: 1px solid rgba(255, 214, 153, 0.25);
-  box-shadow: 0 8px 20px -6px rgba(181, 68, 38, 0.55);
-  transition: all 0.2s ease;
+  background-color: #B5532A;
+  color: #FFFFFF;
+  border-radius: 4px;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
 }
 .btn-terracotta:hover {
-  background: linear-gradient(135deg, #d1542f 0%, #ab3c1e 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px -6px rgba(181, 68, 38, 0.65);
+  background-color: #973F1C;
 }
 
-/* Royal Indigo Button */
-.btn-indigo {
-  background: linear-gradient(135deg, #224475 0%, #152b4c 100%);
-  color: #fff9f2;
-  border: 1px solid rgba(200, 141, 40, 0.35);
-  box-shadow: 0 8px 20px -6px rgba(21, 43, 76, 0.55);
-  transition: all 0.2s ease;
+/* Secondary Editorial Button (Indigo outlined / ghost) */
+.btn-secondary {
+  background-color: transparent;
+  color: #2B3A67;
+  border: 1px solid #2B3A67;
+  border-radius: 4px;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
 }
-.btn-indigo:hover {
-  background: linear-gradient(135deg, #2a538d 0%, #1a355d 100%);
-  transform: translateY(-1px);
-}
-
-/* Animations */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.btn-secondary:hover {
+  background-color: #2B3A67;
+  color: #F6EFE4;
 }
 
-@keyframes pulseRing {
-  0% {
-    box-shadow: 0 0 0 0 rgba(181, 68, 38, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 14px rgba(181, 68, 38, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(181, 68, 38, 0);
-  }
+/* Quiet Product Card */
+.craft-card {
+  background: #FFFFFF;
+  border: 1px solid #E4D9C8;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.craft-card:hover {
+  border-color: #B5532A;
+  transform: translateY(-2px);
 }
 
-.animate-fade-up {
-  animation: fadeUp 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.animate-mic-pulse {
-  animation: pulseRing 1.5s infinite;
-}
-
-/* Custom warm scrollbar */
+/* Slim scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(44, 29, 19, 0.25);
+  background: #F6EFE4;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(200, 141, 40, 0.55);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(181, 68, 38, 0.78);
+  background: #D9A441;
+  border-radius: 3px;
 }
