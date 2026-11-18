@@ -1,6 +1,6 @@
 import React from 'react';
 import { Globe, ArrowRight } from 'lucide-react';
-import { getLanguageMeta } from '../i18n/languages';
+import { getLanguageMeta, getTranslations } from '../i18n/languages';
 
 export default function EditorialNavbar({
   currentRoute,
@@ -11,6 +11,7 @@ export default function EditorialNavbar({
   onOpenLogin,
 }) {
   const langMeta = getLanguageMeta(language);
+  const t = getTranslations(language);
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#F6EFE4]/95 backdrop-blur-xs border-b border-[#E4D9C8]">
@@ -25,7 +26,7 @@ export default function EditorialNavbar({
             K
           </span>
           <span className="font-display text-2xl font-semibold tracking-tight text-[#2B3A67]">
-            KarigarBazaar
+            {t.appName}
           </span>
         </button>
 
@@ -38,7 +39,7 @@ export default function EditorialNavbar({
               currentRoute === 'shop' ? 'text-[#B5532A] font-semibold' : ''
             }`}
           >
-            Shop crafts
+            {t.shopCrafts}
           </button>
           <button
             type="button"
@@ -47,7 +48,7 @@ export default function EditorialNavbar({
               currentRoute === 'artisan' ? 'text-[#B5532A] font-semibold' : ''
             }`}
           >
-            For artisans
+            {t.forArtisans}
           </button>
           <a
             href="#how-it-works"
@@ -62,7 +63,7 @@ export default function EditorialNavbar({
             }}
             className="transition hover:text-[#B5532A] cursor-pointer"
           >
-            How it works
+            {t.howItWorks}
           </a>
         </nav>
 
@@ -71,7 +72,7 @@ export default function EditorialNavbar({
           <button
             type="button"
             onClick={onOpenLanguage}
-            className="flex items-center gap-1.5 text-xs text-[#2B3A67] hover:text-[#B5532A] border border-[#E4D9C8] px-3 py-1.5 rounded-sm bg-white/70 transition cursor-pointer"
+            className="flex items-center gap-1.5 text-xs text-[#2B3A67] hover:text-[#B5532A] border border-[#E4D9C8] px-3 py-1.5 rounded-sm bg-white/80 transition cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-[#D9A441]" />
             <span className="font-medium">{langMeta.nativeName}</span>
@@ -85,7 +86,7 @@ export default function EditorialNavbar({
             {artisanName ? (
               <span className="truncate max-w-[120px]">{artisanName}</span>
             ) : (
-              <span>Login</span>
+              <span>{t.login}</span>
             )}
             <ArrowRight className="w-3 h-3 text-[#B5532A]" />
           </button>

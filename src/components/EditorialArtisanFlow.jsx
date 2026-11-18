@@ -3,24 +3,30 @@ import {
   Camera,
   Mic,
   MicOff,
+  Volume2,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   RefreshCw,
   Share2,
   Sliders,
+  Check,
 } from 'lucide-react';
-import { SUPPORTED_LANGUAGES, getLanguageMeta } from '../i18n/languages';
-import { createSpeechRecognizer, isSpeechRecognitionSupported } from '../utils/speechEngine';
+import { SUPPORTED_LANGUAGES, getLanguageMeta, getTranslations } from '../i18n/languages';
+import { speakText, stopSpeaking, createSpeechRecognizer, isSpeechRecognitionSupported } from '../utils/speechEngine';
 import { inspectCraftImage } from '../ai/aiService';
 
 export default function EditorialArtisanFlow({
   artisanProfile,
   onProfileUpdate,
-  language,
+  language = 'en',
   setLanguage,
   onPublishCraft,
   onFinishFlow,
 }) {
+  const t = getTranslations(language);
+  const langMeta = getLanguageMeta(language);
+
   // Flow stages: 'capture' | 'processing' | 'review' | 'matches'
   const [stage, setStage] = useState('capture');
 
@@ -35,14 +41,22 @@ export default function EditorialArtisanFlow({
   const [capturedPhoto, setCapturedPhoto] = useState(
     'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80'
   );
-  const [spokenTranscript, setSpokenTranscript] = useState('');
+
+  // Conversational Voice Q&A state (one-by-one interview)
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  const [voiceAnswers, setVoiceAnswers] = useState({
+    name: '',
+    materials: '',
+    duration: '',
+    price: '',
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [waveformLevels, setWaveformLevels] = useState([12, 24, 18, 30, 16, 28, 22, 14]);
 
   // Processing checklist state
   const [checklist, setChecklist] = useState([
     { id: 1, label: 'Cleaning workbench photo & refining lighting', done: false },
-    { id: 2, label: 'Transcribing voice in regional dialect', done: false },
+    { id: 2, label: `Transcribing voice answers in ${langMeta.nativeName}`, done: false },
     { id: 3, label: 'Writing craft story & specifications', done: false },
     { id: 4, label: 'Selecting heritage craft category', done: false },
     { id: 5, label: 'Checking fair benchmark market prices', done: false },
@@ -58,35 +72,48 @@ export default function EditorialArtisanFlow({
   const [reviewMinPrice, setReviewMinPrice] = useState('650');
   const [reviewMaxPrice, setReviewMaxPrice] = useState('950');
 
-  // Simulated Buyer Matches
-  const buyerMatches = [
+  // 4 Questions definition
+  const questions = [
     {
-      name: 'Aditi Sharma',
-      type: 'Interior Designer',
-      city: 'Bengaluru, Karnataka',
-      need: 'Looking for 12 authentic handmade terracotta surahis for a heritage resort lobby.',
-      score: 96,
-      avatar: 'AS',
+      id: 'name',
+      prompt: t.q1Prompt,
+      desc: t.q1Desc,
+      key: 'name',
     },
     {
-      name: 'Ananya Roy',
-      type: 'Boutique Curator',
-      city: 'Kolkata, West Bengal',
-      need: 'Regular sourcing of regional unglazed vessels for sustainable lifestyle retail.',
-      score: 91,
-      avatar: 'AR',
+      id: 'materials',
+      prompt: t.q2Prompt,
+      desc: t.q2Desc,
+      key: 'materials',
     },
     {
-      name: 'FabIndia Craft Sourcing',
-      type: 'Artisan Partner',
-      city: 'New Delhi',
-      need: 'Direct cluster order with 0% middleman deduction.',
-      score: 87,
-      avatar: 'FC',
+      id: 'duration',
+      prompt: t.q3Prompt,
+      desc: t.q3Desc,
+      key: 'duration',
+    },
+    {
+      id: 'price',
+      prompt: t.q4Prompt,
+      desc: t.q4Desc,
+      key: 'price',
     },
   ];
 
-  const langMeta = getLanguageMeta(language);
+  const activeQuestion = questions[currentQuestionIdx];
+
+  // Play question audio automatically when switching questions
+  const askQuestionAloud = (promptText) => {
+    speakText(promptText, language);
+  };
+
+  // Re-read question aloud on mount or question index change
+  useEffect(() => {
+    if (stage === 'capture') {
+      askQuestionAloud(activeQuestion.prompt);
+    }
+    return () => stopSpeaking();
+  }, [currentQuestionIdx, language, stage]);
 
   // Live waveform animation when recording
   useEffect(() => {
@@ -101,21 +128,30 @@ export default function EditorialArtisanFlow({
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  // Mic recording handler
+  // Mic recording handler for current question
   const handleToggleRecord = () => {
     if (isRecording) {
       setIsRecording(false);
       return;
     }
+    stopSpeaking();
+    setIsSpeakingQuestion(false);
+
     if (!isSpeechRecognitionSupported()) {
       alert('Speech recognition is supported in Chrome, Edge, and modern Android browsers.');
       return;
     }
+
     setIsRecording(true);
     const rec = createSpeechRecognizer({
       language,
       onResult: (text) => {
-        setSpokenTranscript((prev) => (prev ? `${prev} ${text}` : text));
+        setVoiceAnswers((prev) => ({
+          ...prev,
+          [activeQuestion.key]: prev[activeQuestion.key]
+            ? `${prev[activeQuestion.key]} ${text}`
+            : text,
+        }));
       },
       onEnd: () => setIsRecording(false),
       onError: () => setIsRecording(false),
@@ -124,6 +160,23 @@ export default function EditorialArtisanFlow({
       rec?.start();
     } catch {
       setIsRecording(false);
+    }
+  };
+
+  // Move to next question or auto advance
+  const handleNextQuestion = () => {
+    setIsRecording(false);
+    stopSpeaking();
+    if (currentQuestionIdx < questions.length - 1) {
+      setCurrentQuestionIdx((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevQuestion = () => {
+    setIsRecording(false);
+    stopSpeaking();
+    if (currentQuestionIdx > 0) {
+      setCurrentQuestionIdx((prev) => prev - 1);
     }
   };
 
@@ -142,6 +195,8 @@ export default function EditorialArtisanFlow({
 
   // Start processing flow
   const handleStartProcessing = async () => {
+    stopSpeaking();
+    setIsRecording(false);
     setStage('processing');
 
     // Simulate step by step progress
@@ -169,39 +224,42 @@ export default function EditorialArtisanFlow({
         targetLanguageName: langMeta.name,
       });
 
+      const userCombinedAnswer = [
+        voiceAnswers.name,
+        voiceAnswers.materials,
+        voiceAnswers.duration,
+      ]
+        .filter(Boolean)
+        .join('. ');
+
       setTimeout(() => {
-        if (res?.data) {
-          setReviewTitle(res.data.productName || 'Handcrafted Earthen Vessel');
-          setReviewDesc(
-            res.data.description ||
-              spokenTranscript ||
-              'Authentic clay craft shaped slowly by hand, using mineral-rich riverbed terracotta and dried under open sun before wood firing.'
-          );
-          setReviewCategory(res.data.category || 'Pottery');
-          setReviewMaterial(
-            (res.data.materials || ['Riverbed Terracotta', 'Organic Slip']).join(', ')
-          );
-          const basePrice = res.data.suggestedPrice || 750;
-          setReviewMinPrice(String(Math.round(basePrice * 0.85)));
-          setReviewMaxPrice(String(Math.round(basePrice * 1.25)));
-        } else {
-          setReviewTitle('Khurja Hand-Turned Terracotta Surahi');
-          setReviewDesc(
-            spokenTranscript ||
-              'Natural porous clay water carafe crafted on a stone wheel. Keeps water naturally chilled without refrigeration.'
-          );
-          setReviewCategory('Pottery');
-          setReviewMaterial('Natural Riverbed Clay, Wood Ash');
-          setReviewMinPrice('650');
-          setReviewMaxPrice('950');
-        }
+        const detectedTitle =
+          voiceAnswers.name || res?.data?.productName || 'Handcrafted Earthen Vessel';
+        const detectedDesc =
+          userCombinedAnswer ||
+          res?.data?.description ||
+          'Authentic craft shaped slowly by hand, using mineral-rich riverbed terracotta and dried under open sun before wood firing.';
+        const detectedMat =
+          voiceAnswers.materials ||
+          (res?.data?.materials || ['Riverbed Terracotta', 'Organic Slip']).join(', ');
+
+        setReviewTitle(detectedTitle);
+        setReviewDesc(detectedDesc);
+        setReviewCategory(res?.data?.category || 'Pottery');
+        setReviewMaterial(detectedMat);
+
+        const parsedPrice = parseInt(voiceAnswers.price?.replace(/\D/g, ''), 10);
+        const basePrice = parsedPrice || res?.data?.suggestedPrice || 750;
+        setReviewMinPrice(String(Math.round(basePrice * 0.9)));
+        setReviewMaxPrice(String(Math.round(basePrice * 1.25)));
+
         setStage('review');
       }, 3400);
     } catch {
       setTimeout(() => {
-        setReviewTitle('Khurja Hand-Turned Terracotta Surahi');
+        setReviewTitle(voiceAnswers.name || 'Handcrafted Indian Masterpiece');
         setReviewDesc(
-          spokenTranscript ||
+          voiceAnswers.materials ||
             'Natural porous red clay water vessel hand-turned on a stone wheel and pit-fired for natural evaporative cooling.'
         );
         setStage('review');
@@ -219,8 +277,8 @@ export default function EditorialArtisanFlow({
       priceMin: Number(reviewMinPrice) || 600,
       priceMax: Number(reviewMaxPrice) || 950,
       image: capturedPhoto,
-      artisanName: artisanProfile.name || 'Master Artisan',
-      location: artisanProfile.location || 'India',
+      artisanName: artisanProfile.name || profName || 'Master Artisan',
+      location: artisanProfile.location || profCity || 'India',
       badge: 'Artisan direct',
       materials: reviewMaterial.split(',').map((s) => s.trim()),
       tags: reviewTags.split(',').map((s) => s.trim()),
@@ -237,21 +295,49 @@ export default function EditorialArtisanFlow({
     setProfileOpen(false);
   };
 
+  // Simulated Buyer Matches
+  const buyerMatches = [
+    {
+      name: 'Aditi Sharma',
+      type: 'Interior Designer',
+      city: 'Bengaluru, Karnataka',
+      need: `Looking for authentic ${reviewCategory} pieces for a luxury heritage resort lobby.`,
+      score: 96,
+      avatar: 'AS',
+    },
+    {
+      name: 'Ananya Roy',
+      type: 'Boutique Curator',
+      city: 'Kolkata, West Bengal',
+      need: `Regular sourcing of regional handcrafted items for sustainable retail with 0% middleman deduction.`,
+      score: 91,
+      avatar: 'AR',
+    },
+    {
+      name: 'FabIndia Craft Sourcing',
+      type: 'Artisan Partner',
+      city: 'New Delhi',
+      need: 'Direct cluster order with fair payout directly to artisan bank accounts.',
+      score: 87,
+      avatar: 'FC',
+    },
+  ];
+
   return (
-    <div className="w-full bg-[#F6EFE4] min-h-[90vh]">
+    <div className="w-full bg-[#F6EFE4]/85 backdrop-blur-xs min-h-[90vh]">
       {/* 1. ARTISAN REGISTRATION / PROFILE MODAL (collected once) */}
       {profileOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6">
-          <div className="w-full max-w-md bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6">
+          <div className="w-full max-w-md bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6 shadow-xl">
             <div>
               <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
-                Artisan atelier setup
+                {t.craftWorkspace}
               </span>
               <h2 className="font-display text-3xl font-semibold text-[#2B3A67] mt-1">
-                Your workshop profile
+                {t.workshopCity} Profile
               </h2>
               <p className="text-xs text-[#2B3A67]/75 mt-1">
-                Tell us your name and workshop city once. You will never need to type them again.
+                Tell us your name and workshop city once in {langMeta.nativeName}. You won't have to type it again.
               </p>
             </div>
 
@@ -285,27 +371,27 @@ export default function EditorialArtisanFlow({
               </div>
 
               <button type="submit" className="btn-terracotta w-full mt-2">
-                Save & continue to workshop
+                Save & start workshop
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* STAGE 1: CAPTURE SCREEN (Two very large tiles side by side: Snap & Speak) */}
+      {/* STAGE 1: CAPTURE SCREEN (Two very large tiles: Snap & Conversational Speak Q&A) */}
       {stage === 'capture' && (
         <section className="max-w-7xl mx-auto px-6 py-14">
           {/* Greeting */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 pb-6 border-b border-[#E4D9C8] gap-4">
             <div>
               <span className="text-xs uppercase tracking-widest font-semibold text-[#B5532A]">
-                Craft workspace
+                {t.craftWorkspace}
               </span>
               <h1 className="font-display text-4xl sm:text-5xl font-semibold text-[#2B3A67] mt-1">
-                Namaste, {artisanProfile.name || profName}
+                {t.namaste}, {artisanProfile.name || profName}
               </h1>
               <p className="text-sm text-[#2B3A67]/75 mt-1">
-                Workshop: {artisanProfile.location || profCity} • No typing needed
+                {t.workshopCity}: {artisanProfile.location || profCity} • {t.noTypingNeeded}
               </p>
             </div>
 
@@ -314,26 +400,26 @@ export default function EditorialArtisanFlow({
               onClick={() => setProfileOpen(true)}
               className="text-xs text-[#2B3A67] hover:text-[#B5532A] underline cursor-pointer self-start sm:self-auto"
             >
-              Edit workshop details
+              {t.editWorkshop}
             </button>
           </div>
 
           {/* Two Very Large Tiles Side by Side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* TILE 1: SNAP (Camera / Upload) */}
-            <div className="bg-white border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[460px]">
+            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
-                    Step A
+                    {t.stepA}
                   </span>
-                  <span className="text-xs text-[#D9A441] font-medium">Workshop Snap</span>
+                  <span className="text-xs text-[#D9A441] font-medium">{t.workshopSnap}</span>
                 </div>
                 <h2 className="font-display text-3xl font-semibold text-[#2B3A67] mt-1">
-                  Snap your craft
+                  {t.snapYourCraft}
                 </h2>
                 <p className="text-xs text-[#2B3A67]/75 mt-1">
-                  Take a photo on your workbench in natural light. We clean and light it for you.
+                  {t.snapDesc}
                 </p>
               </div>
 
@@ -348,7 +434,7 @@ export default function EditorialArtisanFlow({
                 ) : (
                   <div className="text-center p-6 text-[#2B3A67]/60">
                     <Camera className="w-12 h-12 mx-auto stroke-1 mb-2 text-[#D9A441]" />
-                    <span className="text-xs">No craft photo selected yet</span>
+                    <span className="text-xs">{t.noPhotoSelected}</span>
                   </div>
                 )}
               </div>
@@ -356,7 +442,7 @@ export default function EditorialArtisanFlow({
               {/* Camera / Upload trigger */}
               <label className="btn-secondary w-full py-3.5 cursor-pointer flex items-center justify-center gap-2">
                 <Camera className="w-4 h-4 text-[#B5532A]" />
-                <span>Take or choose photo</span>
+                <span>{t.takeOrChoosePhoto}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -366,14 +452,14 @@ export default function EditorialArtisanFlow({
               </label>
             </div>
 
-            {/* TILE 2: SPEAK (Mic with live waveform & language selector) */}
-            <div className="bg-white border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[460px]">
+            {/* TILE 2: CONVERSATIONAL VOICE ASSISTANT (Asks questions one by one) */}
+            <div className="bg-white/95 backdrop-blur-xs border border-[#E4D9C8] rounded-sm p-8 flex flex-col justify-between space-y-6 min-h-[500px]">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
-                    Step B
+                    {t.stepB}
                   </span>
-                  {/* Language select */}
+                  {/* Dialect selector */}
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
@@ -387,36 +473,124 @@ export default function EditorialArtisanFlow({
                   </select>
                 </div>
                 <h2 className="font-display text-3xl font-semibold text-[#2B3A67] mt-1">
-                  Speak in your dialect
+                  {t.voiceDialectTitle}
                 </h2>
                 <p className="text-xs text-[#2B3A67]/75 mt-1">
-                  Tell how many days it took, the clay or silk used, and special techniques.
+                  {t.voiceDialectDesc}
                 </p>
               </div>
 
-              {/* Waveform & Status area */}
-              <div className="aspect-[4/3] rounded-sm border border-[#E4D9C8] bg-cream-cloth p-6 flex flex-col items-center justify-center space-y-4 text-center">
-                {/* Live Waveform */}
-                <div className="h-16 flex items-center gap-1.5 justify-center">
-                  {waveformLevels.map((lvl, idx) => (
-                    <div
-                      key={idx}
-                      className="w-1.5 rounded-full transition-all duration-100"
-                      style={{
-                        height: isRecording ? `${lvl}px` : '6px',
-                        backgroundColor: isRecording ? '#B5532A' : '#D9A441',
-                      }}
-                    />
-                  ))}
+              {/* Active Question Box & Waveform */}
+              <div className="aspect-[4/3] rounded-sm border border-[#E4D9C8] bg-cream-cloth p-6 flex flex-col justify-between">
+                {/* Question Header & Read Aloud button */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#B5532A]">
+                    <span>
+                      {t.questionPrefix} {currentQuestionIdx + 1} / {questions.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => askQuestionAloud(activeQuestion.prompt)}
+                      className="flex items-center gap-1 text-[#2B3A67] hover:text-[#B5532A] cursor-pointer"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-[#D9A441]" />
+                      <span className="text-[11px] font-medium">{t.replayQuestion}</span>
+                    </button>
+                  </div>
+
+                  <h3 className="font-display text-2xl font-bold text-[#2B3A67] leading-snug">
+                    {activeQuestion.prompt}
+                  </h3>
+                  <p className="text-xs text-[#2B3A67]/70 italic">
+                    {activeQuestion.desc}
+                  </p>
                 </div>
 
-                <p className="text-xs font-medium text-[#2B3A67]/80">
-                  {isRecording
-                    ? `Listening in ${langMeta.nativeName}... speak naturally`
-                    : spokenTranscript
-                    ? `“${spokenTranscript.slice(0, 120)}...”`
-                    : `Tap below to start speaking in ${langMeta.nativeName}`}
-                </p>
+                {/* Spoken Answer & Waveform */}
+                <div className="space-y-3 pt-3 border-t border-[#E4D9C8]">
+                  {/* Waveform */}
+                  <div className="h-10 flex items-center gap-1.5 justify-center">
+                    {waveformLevels.map((lvl, idx) => (
+                      <div
+                        key={idx}
+                        className="w-1.5 rounded-full transition-all duration-100"
+                        style={{
+                          height: isRecording ? `${lvl}px` : '5px',
+                          backgroundColor: isRecording ? '#B5532A' : '#D9A441',
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Transcribed text for this question */}
+                  <div className="min-h-12 bg-white/80 p-2.5 rounded-sm border border-[#E4D9C8] text-xs text-[#2B3A67]">
+                    {voiceAnswers[activeQuestion.key] ? (
+                      <span className="font-medium text-[#2B3A67]">
+                        “{voiceAnswers[activeQuestion.key]}”
+                      </span>
+                    ) : isRecording ? (
+                      <span className="text-[#B5532A] font-semibold animate-pulse">
+                        {t.voiceActivePrompt}
+                      </span>
+                    ) : (
+                      <span className="text-[#2B3A67]/50">
+                        {t.speakAnswer} in {langMeta.nativeName}...
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Question Navigation Stepper */}
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevQuestion}
+                    disabled={currentQuestionIdx === 0}
+                    className="text-xs font-semibold text-[#2B3A67] hover:text-[#B5532A] disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>{t.previousQuestion}</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {questions.map((q, idx) => (
+                      <button
+                        key={q.id}
+                        type="button"
+                        onClick={() => {
+                          setIsRecording(false);
+                          stopSpeaking();
+                          setCurrentQuestionIdx(idx);
+                        }}
+                        className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition cursor-pointer ${
+                          idx === currentQuestionIdx
+                            ? 'bg-[#B5532A] text-white'
+                            : voiceAnswers[q.key]
+                            ? 'bg-[#D9A441]/40 text-[#2B3A67]'
+                            : 'bg-white border border-[#E4D9C8] text-[#2B3A67]/60'
+                        }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  {currentQuestionIdx < questions.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={handleNextQuestion}
+                      className="text-xs font-semibold text-[#B5532A] hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <span>{t.nextQuestion}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="text-xs font-semibold text-emerald-800 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 stroke-2" />
+                      <span>Ready</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Mic toggle */}
@@ -425,12 +599,16 @@ export default function EditorialArtisanFlow({
                 onClick={handleToggleRecord}
                 className={`w-full py-3.5 rounded-sm font-medium flex items-center justify-center gap-2 cursor-pointer transition ${
                   isRecording
-                    ? 'bg-[#B5532A] text-white'
+                    ? 'bg-[#B5532A] text-white shadow-md'
                     : 'bg-[#F6EFE4] border border-[#E4D9C8] text-[#2B3A67] hover:border-[#B5532A]'
                 }`}
               >
                 {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-[#B5532A]" />}
-                <span>{isRecording ? 'Stop recording' : 'Start speaking'}</span>
+                <span>
+                  {isRecording
+                    ? 'Finished answering this question'
+                    : `Speak answer to Question ${currentQuestionIdx + 1}`}
+                </span>
               </button>
             </div>
           </div>
@@ -440,19 +618,19 @@ export default function EditorialArtisanFlow({
             <button
               type="button"
               onClick={handleStartProcessing}
-              className="btn-terracotta px-12 py-4 text-base font-semibold"
+              className="btn-terracotta px-12 py-4 text-base font-semibold shadow-sm"
             >
-              <span>Create my catalogue</span>
+              <span>{t.createMyCatalogue}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </section>
       )}
 
-      {/* STAGE 2: PROCESSING SCREEN (Vertical checklist ticking off) */}
+      {/* STAGE 2: PROCESSING SCREEN */}
       {stage === 'processing' && (
         <section className="max-w-2xl mx-auto px-6 py-24">
-          <div className="bg-white border border-[#E4D9C8] rounded-sm p-10 space-y-8">
+          <div className="bg-white border border-[#E4D9C8] rounded-sm p-10 space-y-8 shadow-sm">
             <div className="text-center space-y-2">
               <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
                 Craft atelier AI assistant
@@ -461,11 +639,10 @@ export default function EditorialArtisanFlow({
                 Preparing your piece
               </h2>
               <p className="text-xs text-[#2B3A67]/75">
-                Translating spoken words and enhancing workshop photo
+                Processing your dialect answers in {langMeta.nativeName} and cleaning workshop photo
               </p>
             </div>
 
-            {/* Vertical checklist */}
             <div className="space-y-4 pt-4 border-t border-[#E4D9C8]">
               {checklist.map((item) => (
                 <div
@@ -491,38 +668,36 @@ export default function EditorialArtisanFlow({
         </section>
       )}
 
-      {/* STAGE 3: REVIEW SCREEN (Catalogue card on left with before/after toggle, editable fields on right, sticky Approve bar) */}
+      {/* STAGE 3: REVIEW SCREEN */}
       {stage === 'review' && (
         <section className="max-w-7xl mx-auto px-6 py-12 pb-32">
           <div className="mb-8">
             <span className="text-xs uppercase tracking-widest font-semibold text-[#B5532A]">
-              Step 3 of 4
+              {t.reviewSubtitle}
             </span>
             <h2 className="font-display text-4xl font-semibold text-[#2B3A67] mt-1">
-              Review your craft entry
+              {t.reviewTitle}
             </h2>
             <p className="text-xs text-[#2B3A67]/75 mt-1">
-              Check the details generated from your photo and dialect. You can edit any field.
+              {t.reviewDesc}
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            {/* Left: Catalogue card with Before / After image toggle */}
-            <div className="lg:col-span-5 bg-white border border-[#E4D9C8] rounded-sm p-6 space-y-4">
+            {/* Left: Catalogue card */}
+            <div className="lg:col-span-5 bg-white border border-[#E4D9C8] rounded-sm p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#2B3A67]">Catalogue Card Preview</span>
-                {/* Toggle button */}
                 <button
                   type="button"
                   onClick={() => setShowOriginalPhoto(!showOriginalPhoto)}
                   className="text-xs text-[#B5532A] hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   <Sliders className="w-3.5 h-3.5" />
-                  <span>{showOriginalPhoto ? 'Show cleaned studio photo' : 'Show original workshop snap'}</span>
+                  <span>{showOriginalPhoto ? t.showCleaned : t.showOriginal}</span>
                 </button>
               </div>
 
-              {/* Image */}
               <div className="aspect-[4/5] rounded-sm overflow-hidden border border-[#E4D9C8] bg-black/5 relative">
                 <img
                   src={capturedPhoto}
@@ -532,11 +707,10 @@ export default function EditorialArtisanFlow({
                   }`}
                 />
                 <span className="absolute top-3 left-3 bg-[#2B3A67]/90 text-white text-[11px] px-2.5 py-0.5 rounded-sm">
-                  {showOriginalPhoto ? 'Original snap' : 'AI studio lighting'}
+                  {showOriginalPhoto ? 'Original snap' : 'AI studio clean'}
                 </span>
               </div>
 
-              {/* Preview card text */}
               <div className="space-y-1.5 pt-2">
                 <span className="text-xs text-[#B5532A] uppercase font-semibold tracking-wider">
                   {reviewCategory}
@@ -552,10 +726,10 @@ export default function EditorialArtisanFlow({
             </div>
 
             {/* Right: Editable fields */}
-            <div className="lg:col-span-7 bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6">
+            <div className="lg:col-span-7 bg-white border border-[#E4D9C8] rounded-sm p-8 space-y-6 shadow-sm">
               <div>
                 <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                  Product Name
+                  {t.productName}
                 </label>
                 <input
                   type="text"
@@ -567,7 +741,7 @@ export default function EditorialArtisanFlow({
 
               <div>
                 <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                  Craft Story & Description
+                  {t.craftStory}
                 </label>
                 <textarea
                   rows={4}
@@ -580,7 +754,7 @@ export default function EditorialArtisanFlow({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                    Craft Category
+                    {t.craftCategory}
                   </label>
                   <select
                     value={reviewCategory}
@@ -597,7 +771,7 @@ export default function EditorialArtisanFlow({
 
                 <div>
                   <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                    Key Materials
+                    {t.keyMaterials}
                   </label>
                   <input
                     type="text"
@@ -611,7 +785,7 @@ export default function EditorialArtisanFlow({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                    Direct Payout Range (Min ₹)
+                    {t.payoutMin}
                   </label>
                   <input
                     type="number"
@@ -622,7 +796,7 @@ export default function EditorialArtisanFlow({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                    Direct Payout Range (Max ₹)
+                    {t.payoutMax}
                   </label>
                   <input
                     type="number"
@@ -635,7 +809,7 @@ export default function EditorialArtisanFlow({
 
               <div>
                 <label className="block text-xs font-semibold text-[#2B3A67] mb-1">
-                  Tags (comma separated)
+                  {t.tags}
                 </label>
                 <input
                   type="text"
@@ -647,8 +821,8 @@ export default function EditorialArtisanFlow({
             </div>
           </div>
 
-          {/* Sticky Approve bar at bottom */}
-          <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E4D9C8] py-4 px-6 shadow-lg">
+          {/* Sticky Approve bar */}
+          <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E4D9C8] py-4 px-6 shadow-xl">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="text-xs text-[#2B3A67]">
                 Ready to publish as <strong className="text-[#B5532A]">{reviewTitle}</strong>
@@ -659,7 +833,7 @@ export default function EditorialArtisanFlow({
                 onClick={handleApproveCraft}
                 className="btn-terracotta px-8 py-3 font-semibold"
               >
-                <span>Approve and find buyers</span>
+                <span>{t.approveAndFindBuyers}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -667,27 +841,26 @@ export default function EditorialArtisanFlow({
         </section>
       )}
 
-      {/* STAGE 4: MATCHES SCREEN (Ranked buyer cards with score bar and Share button) */}
+      {/* STAGE 4: MATCHES SCREEN */}
       {stage === 'matches' && (
         <section className="max-w-4xl mx-auto px-6 py-14">
           <div className="text-center space-y-2 mb-10">
             <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
-              Catalogue published
+              {t.cataloguePublished}
             </span>
             <h2 className="font-display text-4xl font-semibold text-[#2B3A67]">
-              Matched buyers for your craft
+              {t.matchedBuyersTitle}
             </h2>
             <p className="text-xs text-[#2B3A67]/75">
-              These verified buyers and retail curators are actively looking for {reviewCategory}
+              {t.matchedBuyersDesc}
             </p>
           </div>
 
-          {/* Matches List */}
           <div className="space-y-4">
             {buyerMatches.map((buyer) => (
               <div
                 key={buyer.name}
-                className="bg-white border border-[#E4D9C8] rounded-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+                className="bg-white border border-[#E4D9C8] rounded-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-xs"
               >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-sm bg-[#F6EFE4] border border-[#D9A441] text-[#2B3A67] flex items-center justify-center font-display font-bold text-lg shrink-0">
@@ -709,7 +882,6 @@ export default function EditorialArtisanFlow({
                   </div>
                 </div>
 
-                {/* Score bar & Share button */}
                 <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 shrink-0 border-t sm:border-t-0 pt-4 sm:pt-0 border-[#E4D9C8]">
                   <div className="text-right">
                     <span className="text-xs font-semibold text-[#2B3A67]">
@@ -739,31 +911,31 @@ export default function EditorialArtisanFlow({
                     className="btn-secondary py-2 px-3.5 text-xs font-medium flex items-center gap-1.5"
                   >
                     <Share2 className="w-3.5 h-3.5 text-[#B5532A]" />
-                    <span>Share catalogue</span>
+                    <span>{t.shareCatalogue}</span>
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Action buttons */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <button
               type="button"
               onClick={() => {
                 setStage('capture');
-                setSpokenTranscript('');
+                setCurrentQuestionIdx(0);
+                setVoiceAnswers({ name: '', materials: '', duration: '', price: '' });
               }}
               className="btn-secondary"
             >
-              List another craft
+              {t.listAnotherCraft}
             </button>
             <button
               type="button"
               onClick={onFinishFlow}
               className="btn-terracotta"
             >
-              <span>View in marketplace</span>
+              <span>{t.viewInMarketplace}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

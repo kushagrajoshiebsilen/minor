@@ -74,9 +74,13 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#F6EFE4] text-[#2B3A67] font-body"
+      className="min-h-screen flex flex-col relative text-[#2B3A67] font-body"
       dir={language === 'ur' ? 'rtl' : 'ltr'}
     >
+      {/* Whole website fixed artisan workbench backdrop + warm veil */}
+      <div className="site-backdrop" aria-hidden="true" />
+      <div className="site-veil" aria-hidden="true" />
+
       {/* Intro Splash: Fullscreen video on first visit per session */}
       {showIntro && <EditorialIntroSplash onFinish={handleFinishIntro} />}
 
@@ -91,7 +95,7 @@ export default function App() {
       />
 
       {/* Main Route Content */}
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full relative z-10">
         {currentRoute === 'landing' && (
           <EditorialLandingView
             onStartSelling={() => setCurrentRoute('artisan')}
@@ -116,6 +120,7 @@ export default function App() {
           <EditorialShopView
             products={products}
             onEnquire={(item) => setEnquiryItem(item)}
+            language={language}
           />
         )}
       </main>
