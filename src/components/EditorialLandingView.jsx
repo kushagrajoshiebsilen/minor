@@ -41,33 +41,24 @@ export default function EditorialLandingView({
 
   return (
     <div className="w-full flex flex-col">
-      {/* 1. HERO SECTION (workbench background shines through with a light left focus wash) */}
-      <section className="relative w-full min-h-[85vh] flex items-center overflow-hidden">
-        {/* Soft gradient wash so text stays legible on left while workbench image shines through */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F6EFE4]/90 via-[#F6EFE4]/50 to-transparent pointer-events-none" />
+      {/* 1. HERO SECTION: Exactly matching user artwork with interactive hotspot buttons */}
+      <section className="relative w-full aspect-[16/9] min-h-[560px] max-h-[920px] flex items-center overflow-hidden bg-[#E8DDD0]">
+        {/* The user-provided hero image full width & height */}
+        <img
+          src="/hero.jpg"
+          alt="KarigarBazaar - Speak. Snap. Sell."
+          className="absolute inset-0 w-full h-full object-cover object-center select-none"
+        />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-20 w-full z-10">
-          <div className="max-w-2xl space-y-6">
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#B5532A]">
-              {t.heroSubtitle}
-            </span>
-
-            {/* One big serif H1 */}
-            <h1 className="font-display text-5xl sm:text-7xl font-bold tracking-tight text-[#2B3A67] leading-[1.05]">
-              {t.heroTitle}
-            </h1>
-
-            {/* One line below it */}
-            <p className="text-lg text-[#2B3A67] font-medium leading-relaxed">
-              {t.heroDesc}
-            </p>
-
-            {/* Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-4">
+        {/* Interactive action hotspots aligned over the hero buttons */}
+        <div className="relative w-full h-full max-w-7xl mx-auto px-6 z-10 flex flex-col justify-end pb-12 sm:pb-20 lg:pb-28">
+          <div className="max-w-md space-y-4">
+            {/* Clickable action buttons overlaying the styled buttons in the artwork */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
               <button
                 type="button"
                 onClick={onStartSelling}
-                className="btn-terracotta shadow-md"
+                className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-full font-semibold text-white bg-[#B5532A] hover:bg-[#973F1C] active:scale-95 shadow-md flex items-center gap-2 text-sm sm:text-base transition cursor-pointer"
               >
                 <span>{t.startSelling}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -76,7 +67,7 @@ export default function EditorialLandingView({
               <button
                 type="button"
                 onClick={onBrowseCrafts}
-                className="btn-secondary shadow-xs"
+                className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-full font-semibold text-[#2B3A67] bg-[#F6EFE4]/90 hover:bg-[#F6EFE4] border border-[#2B3A67]/30 hover:border-[#2B3A67] active:scale-95 shadow-sm text-sm sm:text-base transition cursor-pointer"
               >
                 <span>{t.browseCrafts}</span>
               </button>
@@ -86,7 +77,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 2. THE PROBLEM IN ONE LINE (Translucent frosted cream) */}
-      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-16">
+      <section className="w-full bg-[#F6EFE4]/80 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-16">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <p className="font-display text-2xl sm:text-3xl italic text-[#2B3A67] leading-relaxed">
             {t.problemQuote}
@@ -174,7 +165,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 4. BEFORE / AFTER PHOTO SLIDER (Plain translucent cream) */}
-      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
+      <section className="w-full bg-[#F6EFE4]/80 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center max-w-xl mx-auto mb-12">
             <span className="text-xs uppercase font-semibold tracking-widest text-[#B5532A]">
@@ -288,7 +279,7 @@ export default function EditorialLandingView({
       </section>
 
       {/* 6. ARTISAN OF THE MONTH */}
-      <section className="w-full bg-[#F6EFE4]/60 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
+      <section className="w-full bg-[#F6EFE4]/80 backdrop-blur-sm border-t border-[#E4D9C8]/70 py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 aspect-[4/5] rounded-sm overflow-hidden border border-[#E4D9C8] bg-white shadow-sm">
