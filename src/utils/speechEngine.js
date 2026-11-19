@@ -1,9 +1,13 @@
 import { getLanguageMeta } from '../i18n/languages';
 
 let currentAudio = null;
+let currentUtterance = null;
 
 export function isSpeechRecognitionSupported() {
-  return typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  return (
+    typeof window !== 'undefined' &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+  );
 }
 
 export function stopSpeaking() {
@@ -16,7 +20,6 @@ export function stopSpeaking() {
     }
     currentAudio = null;
   }
-  isAudioPlaying = false;
 
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     try {
@@ -25,94 +28,116 @@ export function stopSpeaking() {
       // ignore
     }
   }
+  currentUtterance = null;
 }
 
 /**
- * Single-voice text-to-speech engine.
- * Never runs both audio and native speech simultaneously.
+ * Robust Speech Synthesizer
+ * Uses Web SpeechSynthesis first for immediate, zero-latency local speech without proxy lag or CORS block,
+ * and falls back seamlessly to server TTS proxy when needed.
  */
 export function speakText(text, langCode = 'en', onEnd = null) {
   if (!text) return;
-  // Always cancel any in-flight voice first
   stopSpeaking();
 
   const meta = getLanguageMeta(langCode);
-  const ttsCode = meta.ttsCode || 'en';
   const speechCode = meta.speechCode || 'en-IN';
-  const shortText = text.slice(0, 195);
+  const ttsCode = meta.ttsCode || 'en';
+  const cleanText = text.replace(/[\*\_\#\~]/g, '').slice(0, 200);
 
-  const speakNativeOnly = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      if (onEnd) onEnd();
-      return;
-    }
+  // Strategy 1: Browser Native SpeechSynthesis (Instant, 100% reliable locally, zero network delay)
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
     try {
       window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(shortText);
+      const utter = new SpeechSynthesisUtterance(cleanText);
       utter.lang = speechCode;
       utter.rate = 0.95;
-      utter.onend = () => {
-        isAudioPlaying = false;
-        if (onEnd) onEnd();
-      };
-      utter.onerror = () => {
-        isAudioPlaying = false;
-        if (onEnd) onEnd();
-      };
-      isAudioPlaying = true;
-      window.speechSynthesis.speak(utter);
-    } catch {
-      isAudioPlaying = false;
-      if (onEnd) onEnd();
-    }
-  };
+      utter.pitch = 1.0;
 
-  // Try server proxy first
+      // Pick matching voice if available
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const matchingVoice =
+          voices.find((v) => v.lang === speechCode || v.lang.startsWith(ttsCode)) ||
+          voices.find((v) => v.lang.includes('IN')) ||
+          voices[0];
+        if (matchingVoice) {
+          utter.voice = matchingVoice;
+        }
+      }
+
+      utter.onend = () => {
+        currentUtterance = null;
+        if (onEnd) onEnd();
+      };
+
+      utter.onerror = (err) => {
+        console.warn('SpeechSynthesis error, trying audio fallback:', err);
+        currentUtterance = null;
+        playProxyAudio(cleanText, ttsCode, onEnd);
+      };
+
+      currentUtterance = utter;
+      window.speechSynthesis.speak(utter);
+      return;
+    } catch (e) {
+      console.warn('SpeechSynthesis failed:', e);
+    }
+  }
+
+  // Strategy 2: Server audio proxy fallback
+  playProxyAudio(cleanText, ttsCode, onEnd);
+}
+
+function playProxyAudio(text, lang, onEnd) {
   try {
-    const audio = new Audio(`/api/tts?text=${encodeURIComponent(shortText)}&lang=${encodeURIComponent(ttsCode)}`);
+    const audio = new Audio(
+      `/api/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`
+    );
     currentAudio = audio;
-    isAudioPlaying = true;
 
     audio.onended = () => {
       currentAudio = null;
-      isAudioPlaying = false;
       if (onEnd) onEnd();
     };
 
-    // If audio element encounters network/proxy error, gracefully fallback to browser synthesis alone
     audio.onerror = () => {
       currentAudio = null;
-      isAudioPlaying = false;
-      speakNativeOnly();
+      if (onEnd) onEnd();
     };
 
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Autoplay blocked or error: fallback cleanly
+    const p = audio.play();
+    if (p !== undefined) {
+      p.catch(() => {
         currentAudio = null;
-        isAudioPlaying = false;
-        speakNativeOnly();
+        if (onEnd) onEnd();
       });
     }
   } catch {
-    speakNativeOnly();
+    if (onEnd) onEnd();
   }
 }
 
 /**
- * Robust Speech Recognizer with permission check & auto restart protection
+ * Robust Speech Recognizer with permission check & mobile fallback
  */
-export function createSpeechRecognizer({ language = 'en', onResult, onInterim, onEnd, onError }) {
+export function createSpeechRecognizer({
+  language = 'en',
+  onResult,
+  onInterim,
+  onEnd,
+  onError,
+}) {
   if (!isSpeechRecognitionSupported()) return null;
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognizer = new SpeechRecognition();
   const meta = getLanguageMeta(language);
 
-  // Set regional speech code e.g. hi-IN, gu-IN, ta-IN
+  // Set regional speech code (e.g., 'hi-IN', 'gu-IN', 'ta-IN', 'en-IN')
   recognizer.lang = meta.speechCode || 'en-IN';
-  recognizer.continuous = true;
+  recognizer.continuous = false; // continuous = false is much more reliable across mobile browsers & Chrome
   recognizer.interimResults = true;
   recognizer.maxAlternatives = 1;
 
@@ -122,6 +147,7 @@ export function createSpeechRecognizer({ language = 'en', onResult, onInterim, o
     hasSpoken = true;
     let interimText = '';
     let finalText = '';
+
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const phrase = event.results[i][0]?.transcript || '';
       if (event.results[i].isFinal) {
@@ -130,6 +156,7 @@ export function createSpeechRecognizer({ language = 'en', onResult, onInterim, o
         interimText += phrase;
       }
     }
+
     if (interimText && onInterim) onInterim(interimText.trim());
     if (finalText && onResult) onResult(finalText.trim());
   };

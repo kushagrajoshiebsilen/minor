@@ -195,7 +195,7 @@ export default function EditorialArtisanFlow({
   };
 
   // Mic recording handler for current question
-  const handleToggleRecord = () => {
+  const handleToggleRecord = async () => {
     if (isRecording) {
       stopRecording();
       return;
@@ -206,8 +206,23 @@ export default function EditorialArtisanFlow({
     setMicError('');
 
     if (!isSpeechRecognitionSupported()) {
-      setMicError('Speech recognition works best in Chrome or Edge browser. You can also type directly in the box below.');
+      setMicError('Speech recognition requires Chrome or Edge browser. You can also type directly in the box below.');
       return;
+    }
+
+    // Explicitly prompt for mic permission via getUserMedia to unlock Chrome permission dialog if not yet granted
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Close test stream immediately; SpeechRecognition will now have granted permission
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (permErr) {
+      console.warn('Microphone permission check failed:', permErr);
+      if (permErr?.name === 'NotAllowedError' || permErr?.name === 'PermissionDeniedError') {
+        setMicError('Microphone permission is blocked in your browser. Please click the camera/mic icon in the address bar to allow microphone access.');
+        return;
+      }
     }
 
     try {
@@ -230,16 +245,16 @@ export default function EditorialArtisanFlow({
         onInterim: () => {
           setMicError('');
         },
-        onEnd: () => {
+        onEnd: (hasSpoken) => {
           setIsRecording(false);
           recognizerRef.current = null;
         },
         onError: (err) => {
           console.warn('Mic recognizer error:', err);
           if (err === 'not-allowed') {
-            setMicError('Microphone permission blocked. Please allow mic access in your browser or type below.');
+            setMicError('Microphone permission is blocked. Click the lock/tune icon near your browser address bar to enable mic.');
           } else if (err === 'no-speech') {
-            setMicError('No speech detected. Please speak closer to your microphone or type below.');
+            setMicError('No speech heard. Tap the button and speak clearly into your mic, or type below.');
           }
           setIsRecording(false);
           recognizerRef.current = null;
@@ -254,7 +269,7 @@ export default function EditorialArtisanFlow({
     } catch (e) {
       console.error('Failed to start recognizer:', e);
       setIsRecording(false);
-      setMicError('Could not start microphone. You can type your answer in the box below.');
+      setMicError('Could not start microphone. You can type your answer directly in the box below.');
     }
   };
 
@@ -588,11 +603,11 @@ export default function EditorialArtisanFlow({
                     <button
                       type="button"
                       onClick={() => askQuestionAloud(activeQuestion.prompt)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/80 border border-[#E4D9C8] text-[#2B3A67] hover:text-[#B5532A] cursor-pointer"
-                      title="Read question in chosen dialect"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#B5532A] text-white hover:bg-[#973F1C] cursor-pointer shadow-xs transition"
+                      title="Hear AI speak question aloud"
                     >
-                      <Volume2 className="w-3.5 h-3.5 text-[#D9A441]" />
-                      <span className="text-[11px] font-medium">{t.replayQuestion}</span>
+                      <Volume2 className="w-4 h-4 text-white" />
+                      <span className="text-xs font-semibold">{t.replayQuestion}</span>
                     </button>
                   </div>
 
