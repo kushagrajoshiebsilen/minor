@@ -41,15 +41,6 @@ export default function EditorialNavbar({
           >
             {t.shopCrafts}
           </button>
-          <button
-            type="button"
-            onClick={() => onNavigate('artisan')}
-            className={`transition hover:text-[#B5532A] cursor-pointer ${
-              currentRoute === 'artisan' ? 'text-[#B5532A] font-semibold' : ''
-            }`}
-          >
-            {t.forArtisans}
-          </button>
           <a
             href="#how-it-works"
             onClick={(e) => {

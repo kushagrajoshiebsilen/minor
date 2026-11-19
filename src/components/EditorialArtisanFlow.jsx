@@ -13,7 +13,6 @@ import {
   MicOff,
   Volume2,
   ArrowRight,
-  TrendingUp,
   Store,
   CheckCircle2,
   Share2,
@@ -29,11 +28,11 @@ import { inspectCraftImage } from '../ai/aiService';
 
 export default function EditorialArtisanFlow({
   artisanProfile,
-  onProfileUpdate,
+  onProfileUpdate: _onProfileUpdate,
   language = 'en',
   setLanguage,
   onPublishCraft,
-  onFinishFlow,
+  onLogout,
 }) {
   const t = getTranslations(language);
   const langMeta = getLanguageMeta(language);
@@ -612,7 +611,7 @@ export default function EditorialArtisanFlow({
               }`}
             >
               <Home className="w-4 h-4" />
-              <span>Dashboard</span>
+              <span>{t.navDashboard}</span>
             </button>
 
             <button
@@ -625,7 +624,7 @@ export default function EditorialArtisanFlow({
               }`}
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>My Listings</span>
+              <span>{t.navMyListings}</span>
             </button>
 
             <button
@@ -638,7 +637,7 @@ export default function EditorialArtisanFlow({
               }`}
             >
               <Package className="w-4 h-4" />
-              <span>Orders</span>
+              <span>{t.navOrders}</span>
             </button>
 
             <button
@@ -651,7 +650,7 @@ export default function EditorialArtisanFlow({
               }`}
             >
               <Wallet className="w-4 h-4" />
-              <span>Earnings</span>
+              <span>{t.navEarnings}</span>
             </button>
 
             <button
@@ -664,7 +663,7 @@ export default function EditorialArtisanFlow({
               }`}
             >
               <User className="w-4 h-4" />
-              <span>Profile</span>
+              <span>{t.navProfile}</span>
             </button>
 
             <button
@@ -673,7 +672,7 @@ export default function EditorialArtisanFlow({
               className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-[#E0D7C5] hover:bg-white/10 transition cursor-pointer text-left"
             >
               <Headphones className="w-4 h-4" />
-              <span>Support</span>
+              <span>{t.navSupport}</span>
             </button>
 
             <button
@@ -682,7 +681,7 @@ export default function EditorialArtisanFlow({
               className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-[#E0D7C5] hover:bg-white/10 transition cursor-pointer text-left"
             >
               <Settings className="w-4 h-4" />
-              <span>Settings</span>
+              <span>{t.navSettings}</span>
             </button>
           </nav>
         </div>
@@ -692,8 +691,8 @@ export default function EditorialArtisanFlow({
           <div className="flex items-center gap-3">
             <span className="text-3xl">🐘</span>
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-[#E3B778]">Heritage Studio</span>
-              <span className="text-[11px] text-[#D8CCA6]/75">100% Direct Payout</span>
+              <span className="text-xs font-bold text-[#E3B778]">{t.heritageStudio}</span>
+              <span className="text-[11px] text-[#D8CCA6]/75">{t.directPayout100}</span>
             </div>
           </div>
         </div>
@@ -707,7 +706,7 @@ export default function EditorialArtisanFlow({
         <header className="w-full px-8 py-5 flex items-center justify-between border-b border-[#E8DCBE]">
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-[#8B6E4E] uppercase tracking-widest">
-              Artisan Dashboard
+              {t.artisanDashboardTitle}
             </span>
           </div>
 
@@ -736,6 +735,16 @@ export default function EditorialArtisanFlow({
                 </span>
               </div>
             </div>
+
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="text-xs font-semibold text-[#8B6E4E] hover:text-[#B5532A] pl-3 border-l border-[#E8DCBE] transition cursor-pointer"
+              >
+                {t.logoutBtn}
+              </button>
+            )}
           </div>
         </header>
 
@@ -747,11 +756,11 @@ export default function EditorialArtisanFlow({
             {/* Top Greeting Headline */}
             <div>
               <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#2C1D13] tracking-tight flex items-center gap-2">
-                <span>Hello, Artisan!</span>
+                <span>{t.helloArtisan}</span>
                 <span className="text-[#C68345] text-3xl">✨</span>
               </h1>
               <p className="text-sm text-[#6E5843] mt-1 font-medium">
-                Let's get your products online and reach more buyers.
+                {t.helloArtisanSub}
               </p>
             </div>
 
@@ -769,35 +778,35 @@ export default function EditorialArtisanFlow({
                 <div className="bg-[#FFFDF9] border border-[#EADBBE] rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#4A3B2C]">
                     <Store className="w-4 h-4 text-[#B5532A]" />
-                    <span>Your Shop Overview</span>
+                    <span>{t.shopOverview}</span>
                   </div>
 
                   <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[#F0E4CD] text-center">
                     <div>
                       <div className="font-display text-2xl font-bold text-[#2C1D13]">0</div>
-                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">Total Listings</div>
+                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">{t.totalListings}</div>
                     </div>
                     <div>
                       <div className="font-display text-2xl font-bold text-[#2C1D13]">0</div>
-                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">Orders</div>
+                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">{t.orders}</div>
                     </div>
                     <div>
                       <div className="font-display text-2xl font-bold text-[#2C1D13]">₹0</div>
-                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">Earnings</div>
+                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">{t.totalEarnings}</div>
                     </div>
                     <div>
                       <div className="font-display text-2xl font-bold text-[#C68345]">★ 5.0</div>
-                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">Rating</div>
+                      <div className="text-[10px] text-[#7A6752] font-semibold mt-0.5">{t.rating}</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick Actions Card */}
+                {/* Quick Actions Card (NO buyer/seller switcher button) */}
                 <div className="bg-[#FFFDF9] border border-[#EADBBE] rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex items-center justify-between text-xs font-bold text-[#4A3B2C]">
                     <span className="flex items-center gap-1.5">
                       <span className="text-[#B5532A]">⚡</span>
-                      <span>Quick Actions</span>
+                      <span>{t.quickActions}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 text-[#7A6752]" />
                   </div>
@@ -812,16 +821,16 @@ export default function EditorialArtisanFlow({
                       className="bg-[#B5532A] hover:bg-[#973F1C] text-white py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                     >
                       <Camera className="w-3.5 h-3.5" />
-                      <span>Add a Product</span>
+                      <span>{t.addAProduct}</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={onFinishFlow}
+                      onClick={() => setActiveNav('listings')}
                       className="bg-white hover:bg-[#FAF3E7] border border-[#D8CCA6] text-[#2C1D13] py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                     >
-                      <TrendingUp className="w-3.5 h-3.5 text-[#C68345]" />
-                      <span>View Bazaar</span>
+                      <ShoppingBag className="w-3.5 h-3.5 text-[#C68345]" />
+                      <span>{t.myListingsBtn}</span>
                     </button>
                   </div>
                 </div>
@@ -830,17 +839,17 @@ export default function EditorialArtisanFlow({
                 <div className="bg-gradient-to-br from-[#FFFDF9] to-[#F5ECE0] border border-[#EADBBE] rounded-2xl p-6 shadow-sm flex items-center justify-between gap-4">
                   <div className="space-y-2">
                     <h3 className="font-display text-xl font-bold text-[#2C1D13] italic">
-                      Grow Your Business
+                      {t.growYourBusiness}
                     </h3>
                     <p className="text-xs text-[#7A6752]">
-                      List more. Sell more. Grow more.
+                      {t.growYourBusinessSub}
                     </p>
                     <button
                       type="button"
-                      onClick={onFinishFlow}
+                      onClick={() => askQuestionAloud(t.sellerTipText)}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#3E382A] text-[#FAF3E7] text-[11px] font-bold hover:bg-[#2C1D13] transition cursor-pointer mt-1"
                     >
-                      <span>Explore Tips</span>
+                      <span>{t.exploreTips}</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -862,14 +871,14 @@ export default function EditorialArtisanFlow({
                 {/* Speech Bubble from KarigarBazaar AI Assistant */}
                 <div className="w-full max-w-sm bg-white border border-[#EADBBE] rounded-2xl p-4 shadow-sm text-center relative mx-auto transition-all">
                   <p className="text-xs font-bold text-[#2C1D13] flex items-center justify-center gap-1.5">
-                    <span>Namaste! I'm your KarigarBazaar AI assistant.</span>
+                    <span>{t.aiBubbleGreeting}</span>
                     {isAiSpeaking && <span className="animate-bounce">🔊</span>}
                   </p>
                   <p className="text-xs text-[#7A6752] mt-0.5 font-medium">
                     {isAiSpeaking
                       ? `🔊 ${activeQuestion.prompt}`
                       : currentQuestionIdx === 0
-                      ? "👋 Let me help you list your product."
+                      ? `👋 ${t.aiBubblePrompt}`
                       : `👉 ${activeQuestion.prompt}`}
                   </p>
                   {/* Speech bubble pointer pointing down to mascot */}
@@ -888,7 +897,7 @@ export default function EditorialArtisanFlow({
                       speakQuestionAndListen(activeQuestion.prompt, language, currentQuestionIdx, true)
                     }
                     className="relative w-38 h-38 rounded-full bg-[#1B140E] border-4 border-[#C68345] shadow-2xl flex items-center justify-center cursor-pointer transition transform hover:scale-105 group"
-                    title="Click mascot to hear question aloud and listen"
+                    title={t.hearQuestion}
                   >
                     {/* Glowing Friendly Curved Eyes */}
                     <div className="flex items-center gap-7">
@@ -926,14 +935,10 @@ export default function EditorialArtisanFlow({
 
                   <span className="text-xs font-semibold text-[#7A6752]">
                     {isAiSpeaking
-                      ? 'AI speaking... listening starts right after 🔊'
+                      ? t.aiSpeakingText
                       : isRecording
-                      ? language === 'hi'
-                        ? 'सुन रहे हैं... बोलकर उत्तर दें 🎙️'
-                        : 'Listening... speak into mic 🎙️'
-                      : language === 'hi'
-                      ? 'बोलने के लिए माइक दबाएं'
-                      : 'Tap to speak...'}
+                      ? t.listeningActive
+                      : t.tapToSpeak}
                   </span>
 
                   {/* Circular Terracotta/Ochre Microphone Trigger */}
@@ -947,7 +952,7 @@ export default function EditorialArtisanFlow({
                         ? 'bg-[#D9A441] ring-4 ring-[#D9A441]/30'
                         : 'bg-[#B5532A] hover:bg-[#973F1C]'
                     }`}
-                    title="Tap to speak or stop"
+                    title={t.tapToSpeak}
                   >
                     {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                   </button>
@@ -957,7 +962,7 @@ export default function EditorialArtisanFlow({
                 <div className="w-full max-w-sm bg-white border border-[#EADBBE] rounded-2xl p-5 shadow-sm space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-[#B5532A]">
                     <span>
-                      Question {currentQuestionIdx + 1} of {questions.length}
+                      {t.questionCounter} {currentQuestionIdx + 1} {t.ofCounter} {questions.length}
                     </span>
                     <button
                       type="button"
@@ -967,7 +972,7 @@ export default function EditorialArtisanFlow({
                       className="flex items-center gap-1 text-[#2C1D13] hover:text-[#B5532A] cursor-pointer text-[11px] font-semibold"
                     >
                       <Volume2 className="w-3.5 h-3.5 text-[#C68345]" />
-                      <span>{language === 'hi' ? 'सवाल सुनें' : 'Hear question'}</span>
+                      <span>{t.hearQuestion}</span>
                     </button>
                   </div>
 
@@ -981,7 +986,7 @@ export default function EditorialArtisanFlow({
                     <div className="pt-2">
                       <label className="btn-secondary w-full py-2.5 text-xs flex items-center justify-center gap-2 cursor-pointer">
                         <Camera className="w-4 h-4 text-[#B5532A]" />
-                        <span>{language === 'hi' ? 'शिल्प की फोटो चुनें' : 'Choose craft photo'}</span>
+                        <span>{t.choosePhotoBtn}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1046,14 +1051,10 @@ export default function EditorialArtisanFlow({
                         }}
                         placeholder={
                           isAiSpeaking
-                            ? 'AI is speaking...'
+                            ? t.aiSpeakingText
                             : isRecording
-                            ? language === 'hi'
-                              ? 'सुन रहे हैं... बोलकर उत्तर दें'
-                              : 'Listening... speak clearly into your mic'
-                            : language === 'hi'
-                            ? 'उत्तर बोलें या टाइप करें...'
-                            : `Speak or type answer in ${langMeta.nativeName}...`
+                            ? t.listeningActive
+                            : t.enterAnswerPlaceholder
                         }
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-[#2C1D13] bg-[#FAF3E7]/50 ${
                           isRecording
@@ -1079,7 +1080,7 @@ export default function EditorialArtisanFlow({
                       disabled={currentQuestionIdx === 0}
                       className="text-xs font-semibold text-[#7A6752] hover:text-[#2C1D13] disabled:opacity-30 cursor-pointer"
                     >
-                      ← Previous
+                      {t.previousBtn}
                     </button>
 
                     <button
@@ -1088,7 +1089,7 @@ export default function EditorialArtisanFlow({
                       className="text-xs font-bold text-[#B5532A] hover:underline cursor-pointer flex items-center gap-1"
                     >
                       <span>
-                        {currentQuestionIdx < questions.length - 1 ? 'Next Question →' : 'Finish Listing →'}
+                        {currentQuestionIdx < questions.length - 1 ? t.nextQuestionBtn : t.finishListingBtn}
                       </span>
                     </button>
                   </div>
@@ -1103,7 +1104,7 @@ export default function EditorialArtisanFlow({
                 <div className="bg-[#FFFDF9] border border-[#EADBBE] rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#4A3B2C]">
                     <span className="text-base">📋</span>
-                    <span>Your To-Do</span>
+                    <span>{t.yourToDo}</span>
                   </div>
 
                   <div className="space-y-3 pt-1 text-xs">
@@ -1125,10 +1126,10 @@ export default function EditorialArtisanFlow({
                         >
                           {currentQuestionIdx > 1 && '✓'}
                         </span>
-                        <span>Tell me about your product</span>
+                        <span>{t.todoStep1}</span>
                       </div>
                       <p className="text-[11px] text-[#7A6752] font-normal pl-5 mt-0.5">
-                        Let's start listing your first product.
+                        {t.todoStep1Sub}
                       </p>
                     </div>
 
@@ -1141,7 +1142,7 @@ export default function EditorialArtisanFlow({
                       }`}
                     >
                       <span className="w-3.5 h-3.5 rounded-full border border-[#C68345]" />
-                      <span>Add product images</span>
+                      <span>{t.todoStep2}</span>
                     </div>
 
                     {/* Item 3 */}
@@ -1153,13 +1154,13 @@ export default function EditorialArtisanFlow({
                       }`}
                     >
                       <span className="w-3.5 h-3.5 rounded-full border border-[#C68345]" />
-                      <span>Set price</span>
+                      <span>{t.todoStep3}</span>
                     </div>
 
                     {/* Item 4 */}
                     <div className="p-2.5 rounded-xl border bg-white border-[#E8DCBE] text-[#7A6752] flex items-center gap-2">
                       <span className="w-3.5 h-3.5 rounded-full border border-[#C68345]" />
-                      <span>Confirm listing</span>
+                      <span>{t.todoStep4}</span>
                     </div>
                   </div>
                 </div>
@@ -1168,11 +1169,11 @@ export default function EditorialArtisanFlow({
                 <div className="bg-[#FFFDF9] border border-[#EADBBE] rounded-2xl p-6 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#4A3B2C]">
                     <Lightbulb className="w-4 h-4 text-[#E3B778]" />
-                    <span>Seller Tip</span>
+                    <span>{t.sellerTipTitle}</span>
                   </div>
 
                   <p className="text-xs text-[#6E5843] leading-relaxed">
-                    High-quality photos can increase your sales by up to 60%!
+                    {t.sellerTipText}
                   </p>
 
                   <div className="pt-2 flex items-center justify-between">
@@ -1188,7 +1189,7 @@ export default function EditorialArtisanFlow({
                       }
                       className="text-xs font-bold text-[#B5532A] hover:underline cursor-pointer"
                     >
-                      Learn More →
+                      {t.learnMore} →
                     </button>
                     <span className="text-2xl">🏺</span>
                   </div>

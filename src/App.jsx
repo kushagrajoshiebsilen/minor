@@ -4,6 +4,7 @@ import EditorialNavbar from './components/EditorialNavbar';
 import EditorialLandingView from './components/EditorialLandingView';
 import EditorialArtisanFlow from './components/EditorialArtisanFlow';
 import EditorialShopView from './components/EditorialShopView';
+import EditorialLoginPage from './components/EditorialLoginPage';
 import EditorialEnquireModal from './components/EditorialEnquireModal';
 import EditorialLoginModal from './components/EditorialLoginModal';
 import LanguageModal from './components/LanguageModal';
@@ -32,10 +33,10 @@ export default function App() {
   // Language across 15 Indian languages
   const [language, setLanguage] = useState(() => localStorage.getItem('kb_v2_lang') || 'en');
 
-  // Route state: 'landing' (default) | 'artisan' | 'shop'
+  // Route state: 'landing' (default) | 'artisan' | 'shop' | 'login'
   const [currentRoute, setCurrentRoute] = useState('landing');
 
-  // Artisan and Buyer Profiles
+  // Artisan and Buyer Profiles (only treat as logged in if phone is set)
   const [phone, setPhone] = useState(() => localStorage.getItem('kb_v2_phone') || '');
   const [artisanProfile, setArtisanProfile] = useState(() =>
     readStored('kb_v2_karigar', { name: 'Sitadevi Paswan', location: 'Jitwarpur, Bihar' })
@@ -57,7 +58,11 @@ export default function App() {
   }, [language]);
 
   useEffect(() => {
-    if (phone) localStorage.setItem('kb_v2_phone', phone);
+    if (phone) {
+      localStorage.setItem('kb_v2_phone', phone);
+    } else {
+      localStorage.removeItem('kb_v2_phone');
+    }
   }, [phone]);
 
   useEffect(() => {
@@ -72,6 +77,12 @@ export default function App() {
     setProducts((prev) => [craft, ...prev]);
   };
 
+  const handleLogout = () => {
+    setPhone('');
+    localStorage.removeItem('kb_v2_phone');
+    setCurrentRoute('landing');
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col relative text-[#2B3A67] font-body"
@@ -84,24 +95,50 @@ export default function App() {
       {/* Intro Splash: Fullscreen video on first visit per session */}
       {showIntro && <EditorialIntroSplash onFinish={handleFinishIntro} />}
 
-      {/* Slim, cream Navbar */}
-      <EditorialNavbar
-        currentRoute={currentRoute}
-        onNavigate={(route) => setCurrentRoute(route)}
-        language={language}
-        onOpenLanguage={() => setIsLanguageOpen(true)}
-        artisanName={artisanProfile?.name}
-        onOpenLogin={() => setIsLoginOpen(true)}
-      />
+      {/* Slim, cream Navbar - Hidden on Artisan Atelier and Login page */}
+      {currentRoute !== 'artisan' && currentRoute !== 'login' && (
+        <EditorialNavbar
+          currentRoute={currentRoute}
+          onNavigate={(route) => setCurrentRoute(route)}
+          language={language}
+          onOpenLanguage={() => setIsLanguageOpen(true)}
+          artisanName={phone ? artisanProfile?.name : null}
+          onOpenLogin={() => {
+            if (phone) {
+              setCurrentRoute('artisan');
+            } else {
+              setCurrentRoute('login');
+            }
+          }}
+        />
+      )}
 
       {/* Main Route Content */}
       <main className="flex-1 w-full relative z-10">
         {currentRoute === 'landing' && (
           <EditorialLandingView
-            onStartSelling={() => setCurrentRoute('artisan')}
+            onStartSelling={() => {
+              if (phone) {
+                setCurrentRoute('artisan');
+              } else {
+                setCurrentRoute('login');
+              }
+            }}
             onBrowseCrafts={() => setCurrentRoute('shop')}
             onEnquire={(item) => setEnquiryItem(item)}
             language={language}
+          />
+        )}
+
+        {currentRoute === 'login' && (
+          <EditorialLoginPage
+            onLoginSuccess={() => setCurrentRoute('artisan')}
+            onNavigateHome={() => setCurrentRoute('landing')}
+            language={language}
+            phone={phone}
+            setPhone={setPhone}
+            artisanProfile={artisanProfile}
+            onProfileUpdate={(updated) => setArtisanProfile(updated)}
           />
         )}
 
@@ -112,7 +149,7 @@ export default function App() {
             language={language}
             setLanguage={setLanguage}
             onPublishCraft={handleAddProduct}
-            onFinishFlow={() => setCurrentRoute('shop')}
+            onLogout={handleLogout}
           />
         )}
 
