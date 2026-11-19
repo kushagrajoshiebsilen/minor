@@ -8,6 +8,7 @@ import EditorialLoginPage from './components/EditorialLoginPage';
 import EditorialEnquireModal from './components/EditorialEnquireModal';
 import EditorialLoginModal from './components/EditorialLoginModal';
 import LanguageModal from './components/LanguageModal';
+import ElephantWalkingMascot from './components/ElephantWalkingMascot';
 import { INITIAL_HERITAGE_PRODUCTS } from './data/heritageCatalog';
 
 function readStored(key, fallback) {
@@ -20,13 +21,10 @@ function readStored(key, fallback) {
 }
 
 export default function App() {
-  // Intro splash: show once per session using sessionStorage
-  const [showIntro, setShowIntro] = useState(() => {
-    return !sessionStorage.getItem('kb_editorial_intro_shown');
-  });
+  // Intro splash: show on page load and reload
+  const [showIntro, setShowIntro] = useState(true);
 
   const handleFinishIntro = () => {
-    sessionStorage.setItem('kb_editorial_intro_shown', 'true');
     setShowIntro(false);
   };
 
@@ -38,6 +36,7 @@ export default function App() {
 
   // Artisan and Buyer Profiles (only treat as logged in if phone is set)
   const [phone, setPhone] = useState(() => localStorage.getItem('kb_v2_phone') || '');
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('kb_v2_role') || (localStorage.getItem('kb_v2_phone') ? 'seller' : ''));
   const [artisanProfile, setArtisanProfile] = useState(() =>
     readStored('kb_v2_karigar', { name: 'Sitadevi Paswan', location: 'Jitwarpur, Bihar' })
   );
@@ -66,6 +65,14 @@ export default function App() {
   }, [phone]);
 
   useEffect(() => {
+    if (userRole) {
+      localStorage.setItem('kb_v2_role', userRole);
+    } else {
+      localStorage.removeItem('kb_v2_role');
+    }
+  }, [userRole]);
+
+  useEffect(() => {
     localStorage.setItem('kb_v2_karigar', JSON.stringify(artisanProfile));
   }, [artisanProfile]);
 
@@ -79,7 +86,9 @@ export default function App() {
 
   const handleLogout = () => {
     setPhone('');
+    setUserRole('');
     localStorage.removeItem('kb_v2_phone');
+    localStorage.removeItem('kb_v2_role');
     setCurrentRoute('landing');
   };
 
@@ -95,17 +104,27 @@ export default function App() {
       {/* Intro Splash: Fullscreen video on first visit per session */}
       {showIntro && <EditorialIntroSplash onFinish={handleFinishIntro} />}
 
-      {/* Slim, cream Navbar - Hidden on Artisan Atelier and Login page */}
-      {currentRoute !== 'artisan' && currentRoute !== 'login' && (
+      {/* Slim, cream Navbar - Hidden on Artisan Atelier, Login page, and Buyer POV Shop */}
+      {currentRoute !== 'artisan' && currentRoute !== 'login' && currentRoute !== 'shop' && (
         <EditorialNavbar
           currentRoute={currentRoute}
           onNavigate={(route) => setCurrentRoute(route)}
           language={language}
           onOpenLanguage={() => setIsLanguageOpen(true)}
-          artisanName={phone ? artisanProfile?.name : null}
+          artisanName={
+            phone
+              ? userRole === 'seller'
+                ? artisanProfile?.name
+                : `Buyer (${phone.slice(-4)})`
+              : null
+          }
           onOpenLogin={() => {
             if (phone) {
-              setCurrentRoute('artisan');
+              if (userRole === 'seller') {
+                setCurrentRoute('artisan');
+              } else {
+                setCurrentRoute('shop');
+              }
             } else {
               setCurrentRoute('login');
             }
@@ -118,7 +137,7 @@ export default function App() {
         {currentRoute === 'landing' && (
           <EditorialLandingView
             onStartSelling={() => {
-              if (phone) {
+              if (phone && userRole === 'seller') {
                 setCurrentRoute('artisan');
               } else {
                 setCurrentRoute('login');
@@ -132,9 +151,14 @@ export default function App() {
 
         {currentRoute === 'login' && (
           <EditorialLoginPage
-            onLoginSuccess={() => setCurrentRoute('artisan')}
+            onLoginSuccess={(targetRoute, role) => {
+              const assignedRole = role || (targetRoute === 'artisan' ? 'seller' : 'buyer');
+              setUserRole(assignedRole);
+              setCurrentRoute(targetRoute || (assignedRole === 'seller' ? 'artisan' : 'shop'));
+            }}
             onNavigateHome={() => setCurrentRoute('landing')}
             language={language}
+            setLanguage={setLanguage}
             phone={phone}
             setPhone={setPhone}
             artisanProfile={artisanProfile}
@@ -150,6 +174,7 @@ export default function App() {
             setLanguage={setLanguage}
             onPublishCraft={handleAddProduct}
             onLogout={handleLogout}
+            onSwitchToBuyer={() => setCurrentRoute('shop')}
           />
         )}
 
@@ -158,6 +183,15 @@ export default function App() {
             products={products}
             onEnquire={(item) => setEnquiryItem(item)}
             language={language}
+            setLanguage={setLanguage}
+            onSwitchToSeller={phone && userRole === 'seller' ? () => setCurrentRoute('artisan') : null}
+            onNavigateHome={() => setCurrentRoute('landing')}
+            onOpenLogin={() => setCurrentRoute('login')}
+            onLogout={handleLogout}
+            isSellerLoggedIn={Boolean(phone) && userRole === 'seller'}
+            isBuyerLoggedIn={Boolean(phone) && userRole === 'buyer'}
+            buyerPhone={phone}
+            artisanProfile={artisanProfile}
           />
         )}
       </main>
@@ -188,6 +222,9 @@ export default function App() {
         item={enquiryItem}
         onClose={() => setEnquiryItem(null)}
       />
+
+      {/* Website-Wide Continuous Animated Walking Elephant Brand Mascot */}
+      <ElephantWalkingMascot />
     </div>
   );
 }

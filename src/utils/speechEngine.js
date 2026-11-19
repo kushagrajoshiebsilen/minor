@@ -15,7 +15,6 @@ export function isSpeechRecognitionSupported() {
  * Hard stop any active sound or browser utterance immediately
  */
 export function stopSpeaking() {
-  // Invalidate any in-flight async speak token
   activeSpeakToken += 1;
 
   if (currentAudio) {
@@ -41,23 +40,20 @@ export function stopSpeaking() {
 
 /**
  * Strictly single-voice text-to-speech.
- * Guarantees that only ONE single voice (never two voices together) speaks at any time.
+ * Guarantees that only ONE single voice speaks at any time.
  */
 export function speakText(text, langCode = 'en', onEnd = null) {
   if (!text) return;
 
-  // 1. Immediately kill any playing audio, previous utterance, or background speech
   stopSpeaking();
   const token = activeSpeakToken;
 
   const meta = getLanguageMeta(langCode);
   const speechCode = meta.speechCode || 'en-IN';
   const ttsCode = meta.ttsCode || 'en';
-  const cleanText = text.replace(/[*_#~`]/g, '').slice(0, 200);
+  const cleanText = text.replace(/[*_#~`]/g, '').slice(0, 250);
 
-  // Preference: Use the high-quality server proxy MP3 stream ONLY
-  // If it works, speech is crystal-clear Indian dialect without robot voice.
-  // We NEVER start browser speech simultaneously.
+  // 1. Try server proxy TTS first for crystal-clear natural audio
   try {
     const audio = new Audio(
       `/api/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(ttsCode)}`
@@ -78,7 +74,6 @@ export function speakText(text, langCode = 'en', onEnd = null) {
 
     audio.onended = finish;
 
-    // Only fallback if the proxy network request strictly fails (offline / proxy error)
     audio.onerror = () => {
       if (token !== activeSpeakToken) return;
       currentAudio = null;
@@ -88,7 +83,6 @@ export function speakText(text, langCode = 'en', onEnd = null) {
     const p = audio.play();
     if (p !== undefined) {
       p.catch(() => {
-        // Autoplay blocked by browser policy without user gesture: fallback to speech synthesis
         if (token !== activeSpeakToken) return;
         currentAudio = null;
         fallbackBrowserSpeech(cleanText, speechCode, ttsCode, token, onEnd);
@@ -115,7 +109,6 @@ function fallbackBrowserSpeech(cleanText, speechCode, ttsCode, token, onEnd) {
     utter.lang = speechCode;
     utter.rate = 0.95;
 
-    // Filter available voices to pick exactly ONE matching voice
     const voices = window.speechSynthesis.getVoices();
     if (voices && voices.length > 0) {
       const match =
@@ -145,7 +138,7 @@ function fallbackBrowserSpeech(cleanText, speechCode, ttsCode, token, onEnd) {
 }
 
 /**
- * Robust Speech Recognizer
+ * Robust Speech Recognizer with Continuous Capture & Interim Streaming
  */
 export function createSpeechRecognizer({
   language = 'en',
@@ -161,37 +154,89 @@ export function createSpeechRecognizer({
   const recognizer = new SpeechRecognition();
   const meta = getLanguageMeta(language);
 
-  recognizer.lang = meta.speechCode || 'en-IN';
-  recognizer.continuous = false;
+  // Set Indian English / Hindi / regional BCP-47 tag
+  recognizer.lang = meta.speechCode || (language === 'hi' ? 'hi-IN' : 'en-IN');
+  // continuous = true so Chrome doesn't abort while user pauses or takes a breath
+  recognizer.continuous = true;
   recognizer.interimResults = true;
   recognizer.maxAlternatives = 1;
 
   let hasSpoken = false;
+  let lastCaptured = '';
+  let silenceTimer = null;
+  let hasEmittedFinal = false;
+
+  const emitFinalResult = (text) => {
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+    const clean = text?.trim();
+    if (!clean) return;
+    hasEmittedFinal = true;
+    if (onResult) {
+      onResult(clean);
+    }
+  };
 
   recognizer.onresult = (event) => {
-    hasSpoken = true;
     let interimText = '';
     let finalText = '';
 
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const phrase = event.results[i][0]?.transcript || '';
-      if (event.results[i].isFinal) {
-        finalText += phrase;
+    for (let i = 0; i < event.results.length; i += 1) {
+      const item = event.results[i];
+      const phrase = item[0]?.transcript || '';
+      if (item.isFinal) {
+        finalText += (finalText ? ' ' : '') + phrase;
       } else {
-        interimText += phrase;
+        interimText += (interimText ? ' ' : '') + phrase;
       }
     }
 
-    if (interimText && onInterim) onInterim(interimText.trim());
-    if (finalText && onResult) onResult(finalText.trim());
+    const currentText = (finalText || interimText || '').trim();
+    if (currentText) {
+      hasSpoken = true;
+      lastCaptured = currentText;
+      hasEmittedFinal = false;
+      if (onInterim) onInterim(currentText);
+
+      if (finalText) {
+        emitFinalResult(finalText.trim());
+      } else {
+        // Debounce auto-finalizer on natural pause (1.2s)
+        if (silenceTimer) clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+          if (!hasEmittedFinal && lastCaptured) {
+            emitFinalResult(lastCaptured);
+          }
+        }, 1200);
+      }
+    }
   };
 
   recognizer.onerror = (e) => {
-    console.warn('SpeechRecognition error:', e?.error);
-    if (onError) onError(e?.error || 'speech-error');
+    const err = e?.error;
+    console.warn('SpeechRecognition event error:', err);
+    if (err === 'no-speech') {
+      // Harmless silence timeout, ignore so user can still speak
+      return;
+    }
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+    if (onError) onError(err || 'speech-error');
   };
 
   recognizer.onend = () => {
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+    // If recognition ended with text captured that was not yet finalized
+    if (hasSpoken && !hasEmittedFinal && lastCaptured) {
+      emitFinalResult(lastCaptured);
+    }
     if (onEnd) onEnd(hasSpoken);
   };
 
