@@ -12,17 +12,16 @@ import {
   Mic,
   MicOff,
   Volume2,
-  Sparkles,
   ArrowRight,
   TrendingUp,
   Store,
   CheckCircle2,
   Share2,
   Sliders,
-  Check,
   ChevronRight,
   AlertCircle,
   Lightbulb,
+  RefreshCw,
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, getLanguageMeta, getTranslations } from '../i18n/languages';
 import { speakText, stopSpeaking, createSpeechRecognizer, isSpeechRecognitionSupported } from '../utils/speechEngine';
@@ -62,9 +61,11 @@ export default function EditorialArtisanFlow({
 
   // Speech & Waveform
   const [isRecording, setIsRecording] = useState(false);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [micError, setMicError] = useState('');
   const [waveformLevels, setWaveformLevels] = useState([12, 24, 18, 30, 16, 28, 22, 14]);
   const recognizerRef = useRef(null);
+  const advanceTimerRef = useRef(null);
 
   // Review editable fields
   const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
@@ -85,125 +86,97 @@ export default function EditorialArtisanFlow({
     { id: 5, label: 'Checking fair benchmark market prices', done: false },
   ]);
 
-  // Questions definitions
+  // Questions definitions (Dynamically localized)
   const questions = [
     {
       id: 'languageChoice',
-      title: 'Choose Language',
+      title: language === 'hi' ? 'भाषा चुनें' : 'Choose Language',
       prompt: t.q0Prompt || 'Namaste! Which language would you like to speak in today?',
       desc: t.q0Desc || 'e.g. Hindi, Gujarati, Tamil, Bengali, Marathi, or English',
       key: 'languageChoice',
       isLanguageStep: true,
-      todoLabel: 'Tell me about your product',
+      todoLabel: language === 'hi' ? 'अपने उत्पाद के बारे में बताएं' : 'Tell me about your product',
     },
     {
       id: 'name',
-      title: 'Craft Name',
-      prompt: t.q1Prompt,
-      desc: t.q1Desc,
+      title: language === 'hi' ? 'उत्पाद का नाम' : 'Craft Name',
+      prompt: t.q1Prompt || 'What is the name of your handcrafted creation?',
+      desc: t.q1Desc || 'e.g. Hand-turned Terracotta Surahi or Pure Katan Silk Dupatta',
       key: 'name',
-      todoLabel: 'Tell me about your product',
+      todoLabel: language === 'hi' ? 'अपने उत्पाद के बारे में बताएं' : 'Tell me about your product',
     },
     {
       id: 'materials',
-      title: 'Materials & Methods',
-      prompt: t.q2Prompt,
-      desc: t.q2Desc,
+      title: language === 'hi' ? 'सामग्री और तकनीक' : 'Materials & Methods',
+      prompt: t.q2Prompt || 'Which materials and traditional tools did you use?',
+      desc: t.q2Desc || 'e.g. Riverbed red clay, pit loom, botanical dyes, or seasoned rosewood',
       key: 'materials',
-      todoLabel: 'Add product details',
+      todoLabel: language === 'hi' ? 'सामग्री विवरण जोड़ें' : 'Add product details',
     },
     {
       id: 'image',
-      title: 'Photo Upload',
-      prompt: 'Please snap or upload a clear photo of your craft creation.',
-      desc: 'Our AI cleans and lights your photo automatically.',
+      title: language === 'hi' ? 'फोटो अपलोड' : 'Photo Upload',
+      prompt:
+        language === 'hi'
+          ? 'कृपया अपने हस्तशिल्प की एक साफ़ फोटो अपलोड करें या खींचें।'
+          : 'Please snap or upload a clear photo of your craft creation.',
+      desc:
+        language === 'hi'
+          ? 'हमारा AI आपकी फोटो को साफ़ कर स्टूडियो जैसा बना देगा।'
+          : 'Our AI cleans and lights your photo automatically.',
       key: 'image',
       isImageStep: true,
-      todoLabel: 'Add product images',
+      todoLabel: language === 'hi' ? 'उत्पाद की फोटो जोड़ें' : 'Add product images',
     },
     {
       id: 'price',
-      title: 'Set Price',
-      prompt: t.q4Prompt,
-      desc: t.q4Desc,
+      title: language === 'hi' ? 'मूल्य तय करें' : 'Set Price',
+      prompt: t.q4Prompt || 'What direct payout price in Rupees would you like to receive?',
+      desc: t.q4Desc || 'e.g. 850 rupees, 1800 rupees, or 3200 rupees',
       key: 'price',
-      todoLabel: 'Set price',
+      todoLabel: language === 'hi' ? 'मूल्य तय करें' : 'Set price',
     },
   ];
 
-  const activeQuestion = questions[currentQuestionIdx];
+  const activeQuestion = questions[currentQuestionIdx] || questions[0];
 
   // Helper to map spoken or typed language
   const detectAndApplyLanguage = (spokenText) => {
-    if (!spokenText) return;
-    const lower = spokenText.toLowerCase();
+    if (!spokenText) return null;
+    const lower = spokenText.toLowerCase().trim();
     const map = [
-      { key: 'hindi', code: 'hi' },
-      { key: 'हिन्दी', code: 'hi' },
-      { key: 'gujarati', code: 'gu' },
-      { key: 'ગુજરાતી', code: 'gu' },
-      { key: 'tamil', code: 'ta' },
-      { key: 'தமிழ்', code: 'ta' },
-      { key: 'telugu', code: 'te' },
-      { key: 'తెలుగు', code: 'te' },
-      { key: 'bengali', code: 'bn' },
-      { key: 'বাংলা', code: 'bn' },
-      { key: 'marathi', code: 'mr' },
-      { key: 'मराठी', code: 'mr' },
-      { key: 'kannada', code: 'kn' },
-      { key: 'ಕನ್ನಡ', code: 'kn' },
-      { key: 'malayalam', code: 'ml' },
-      { key: 'മലയാളം', code: 'ml' },
-      { key: 'punjabi', code: 'pa' },
-      { key: 'ਪੰਜਾਬੀ', code: 'pa' },
-      { key: 'odia', code: 'or' },
-      { key: 'ଓଡ଼ିଆ', code: 'or' },
-      { key: 'urdu', code: 'ur' },
-      { key: 'اردو', code: 'ur' },
-      { key: 'assamese', code: 'as' },
-      { key: 'অসমীয়া', code: 'as' },
-      { key: 'rajasthani', code: 'raj' },
-      { key: 'राजस्थानी', code: 'raj' },
-      { key: 'kashmiri', code: 'ks' },
-      { key: 'english', code: 'en' },
+      { keys: ['hindi', 'हिन्दी', 'हिंदी', 'hindee'], code: 'hi' },
+      { keys: ['gujarati', 'gujrati', 'ગુજરાતી'], code: 'gu' },
+      { keys: ['tamil', 'தமிழ்'], code: 'ta' },
+      { keys: ['telugu', 'తెలుగు'], code: 'te' },
+      { keys: ['bengali', 'bangla', 'বাংলা'], code: 'bn' },
+      { keys: ['marathi', 'मराठी'], code: 'mr' },
+      { keys: ['kannada', 'ಕನ್ನಡ'], code: 'kn' },
+      { keys: ['malayalam', 'മലയാളം'], code: 'ml' },
+      { keys: ['punjabi', 'ਪੰਜਾਬੀ'], code: 'pa' },
+      { keys: ['odia', 'oriya', 'ଓଡ଼ିଆ'], code: 'or' },
+      { keys: ['urdu', 'اردو'], code: 'ur' },
+      { keys: ['assamese', 'অসমীয়া'], code: 'as' },
+      { keys: ['rajasthani', 'राजस्थानी', 'marwari'], code: 'raj' },
+      { keys: ['kashmiri', 'कश्मीरी'], code: 'ks' },
+      { keys: ['english', 'अंग्रेजी', 'अंग्रेज़ी', 'angreji'], code: 'en' },
     ];
 
     for (const item of map) {
-      if (lower.includes(item.key)) {
-        stopSpeaking();
-        stopRecording();
-        setLanguage(item.code);
-        return item.code;
+      for (const k of item.keys) {
+        if (lower.includes(k)) {
+          return item.code;
+        }
       }
     }
     return null;
   };
 
-  // Play question audio automatically on explicit button click
-  const askQuestionAloud = (promptText) => {
-    if (isRecording) {
-      stopRecording();
-    }
-    speakText(promptText, language);
-  };
-
-  // Live waveform animation when recording
-  useEffect(() => {
-    let timer;
-    if (isRecording) {
-      timer = setInterval(() => {
-        setWaveformLevels(
-          Array.from({ length: 16 }, () => Math.floor(10 + Math.random() * 34))
-        );
-      }, 100);
-    }
-    return () => clearInterval(timer);
-  }, [isRecording]);
-
+  // Stop recording safely
   const stopRecording = () => {
     if (recognizerRef.current) {
       try {
-        recognizerRef.current.stop();
+        recognizerRef.current.abort();
       } catch {
         // ignore
       }
@@ -212,14 +185,36 @@ export default function EditorialArtisanFlow({
     setIsRecording(false);
   };
 
-  // Mic recording handler
-  const handleToggleRecord = async () => {
-    if (isRecording) {
-      stopRecording();
-      return;
+  // Speak question and automatically open the listening mic when question finishes
+  const speakQuestionAndListen = (
+    promptText,
+    langToUse = language,
+    targetIdx = currentQuestionIdx,
+    autoListen = true
+  ) => {
+    stopRecording();
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
     }
 
+    setIsAiSpeaking(true);
+    speakText(promptText, langToUse, () => {
+      setIsAiSpeaking(false);
+      if (autoListen) {
+        setTimeout(() => {
+          startListening(langToUse, targetIdx);
+        }, 300);
+      }
+    });
+  };
+
+  // Start speech recognition listening with auto-turn-taking
+  const startListening = async (langCode = language, targetIdx = currentQuestionIdx) => {
+    if (stage !== 'dashboard') return;
     stopSpeaking();
+    stopRecording();
+    setIsAiSpeaking(false);
     setMicError('');
 
     if (!isSpeechRecognitionSupported()) {
@@ -227,7 +222,6 @@ export default function EditorialArtisanFlow({
       return;
     }
 
-    // Permission unlock
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -243,22 +237,96 @@ export default function EditorialArtisanFlow({
 
     try {
       const rec = createSpeechRecognizer({
-        language,
+        language: langCode,
         onResult: (text) => {
           setMicError('');
-          setVoiceAnswers((prev) => ({
-            ...prev,
-            [activeQuestion.key]: prev[activeQuestion.key]
-              ? `${prev[activeQuestion.key]} ${text}`
-              : text,
-          }));
+          const cleanText = text?.trim();
+          if (!cleanText) return;
 
-          if (activeQuestion.isLanguageStep) {
-            detectAndApplyLanguage(text);
+          // 1. QUESTION 0: Language step
+          if (targetIdx === 0) {
+            const detectedCode = detectAndApplyLanguage(cleanText);
+            if (detectedCode) {
+              stopRecording();
+              setLanguage(detectedCode);
+              const metaObj = getLanguageMeta(detectedCode);
+              setVoiceAnswers((prev) => ({
+                ...prev,
+                languageChoice: `${metaObj.nativeName} (${metaObj.name})`,
+              }));
+              setCurrentQuestionIdx(1);
+              const nextT = getTranslations(detectedCode);
+              const nextPrompt = nextT.q1Prompt;
+              setTimeout(() => {
+                speakQuestionAndListen(nextPrompt, detectedCode, 1, true);
+              }, 250);
+              return;
+            } else {
+              setVoiceAnswers((prev) => ({
+                ...prev,
+                languageChoice: cleanText,
+              }));
+            }
+          } else {
+            // 2. QUESTIONS 1, 2, 4: Name, Materials, Price
+            const targetKey = questions[targetIdx]?.key;
+            if (targetKey) {
+              setVoiceAnswers((prev) => ({
+                ...prev,
+                [targetKey]: cleanText,
+              }));
+            }
+
+            // Automatically advance to the next question after speaker pauses (1.1s debounce)
+            if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+            advanceTimerRef.current = setTimeout(() => {
+              stopRecording();
+              if (targetIdx === 1) {
+                // Name -> Materials
+                setCurrentQuestionIdx(2);
+                const nextT = getTranslations(langCode);
+                speakQuestionAndListen(nextT.q2Prompt, langCode, 2, true);
+              } else if (targetIdx === 2) {
+                // Materials -> Photo
+                setCurrentQuestionIdx(3);
+                const photoPrompt =
+                  langCode === 'hi'
+                    ? 'कृपया अपने हस्तशिल्प की एक साफ़ फोटो अपलोड करें या खींचें।'
+                    : 'Please snap or upload a clear photo of your craft creation.';
+                speakQuestionAndListen(photoPrompt, langCode, 3, false);
+              } else if (targetIdx === 4) {
+                // Price -> Processing
+                const finishPrompt =
+                  langCode === 'hi'
+                    ? 'बहुत बढ़िया! आपका हस्तशिल्प कैटलॉग तैयार किया जा रहा है।'
+                    : 'Wonderful! Creating your handcrafted catalogue now.';
+                speakText(finishPrompt, langCode, () => {
+                  handleStartProcessing();
+                });
+              }
+            }, 1100);
           }
         },
-        onInterim: () => {
+        onInterim: (interimText) => {
           setMicError('');
+          // Check for quick language match even on interim speech
+          if (targetIdx === 0) {
+            const detectedCode = detectAndApplyLanguage(interimText);
+            if (detectedCode) {
+              stopRecording();
+              setLanguage(detectedCode);
+              const metaObj = getLanguageMeta(detectedCode);
+              setVoiceAnswers((prev) => ({
+                ...prev,
+                languageChoice: `${metaObj.nativeName} (${metaObj.name})`,
+              }));
+              setCurrentQuestionIdx(1);
+              const nextT = getTranslations(detectedCode);
+              setTimeout(() => {
+                speakQuestionAndListen(nextT.q1Prompt, detectedCode, 1, true);
+              }, 250);
+            }
+          }
         },
         onEnd: () => {
           setIsRecording(false);
@@ -269,7 +337,7 @@ export default function EditorialArtisanFlow({
           if (err === 'not-allowed') {
             setMicError('Microphone permission blocked. Please enable mic access.');
           } else if (err === 'no-speech') {
-            setMicError('No speech heard. Tap and speak clearly into your mic.');
+            // Keep status friendly
           }
           setIsRecording(false);
           recognizerRef.current = null;
@@ -288,24 +356,67 @@ export default function EditorialArtisanFlow({
     }
   };
 
+  // Language pill button handler
+  const handleSelectLanguage = (newLangCode) => {
+    stopSpeaking();
+    stopRecording();
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    setLanguage(newLangCode);
+    const metaObj = getLanguageMeta(newLangCode);
+    setVoiceAnswers((prev) => ({
+      ...prev,
+      languageChoice: `${metaObj.nativeName} (${metaObj.name})`,
+    }));
+    setCurrentQuestionIdx(1);
+    const nextT = getTranslations(newLangCode);
+    setTimeout(() => {
+      speakQuestionAndListen(nextT.q1Prompt, newLangCode, 1, true);
+    }, 200);
+  };
+
+  // Toggle mic button manually
+  const handleToggleRecord = async () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    if (isAiSpeaking) {
+      stopSpeaking();
+      setIsAiSpeaking(false);
+    }
+    startListening(language, currentQuestionIdx);
+  };
+
+  // Next Question handler
   const handleNextQuestion = () => {
     stopRecording();
     stopSpeaking();
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     if (currentQuestionIdx < questions.length - 1) {
-      setCurrentQuestionIdx((prev) => prev + 1);
+      const nextIdx = currentQuestionIdx + 1;
+      setCurrentQuestionIdx(nextIdx);
+      const nextQ = questions[nextIdx];
+      // For photo step, speak prompt without auto-listening so user can choose image
+      speakQuestionAndListen(nextQ.prompt, language, nextIdx, nextIdx !== 3);
     } else {
       handleStartProcessing();
     }
   };
 
+  // Prev Question handler
   const handlePrevQuestion = () => {
     stopRecording();
     stopSpeaking();
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     if (currentQuestionIdx > 0) {
-      setCurrentQuestionIdx((prev) => prev - 1);
+      const prevIdx = currentQuestionIdx - 1;
+      setCurrentQuestionIdx(prevIdx);
+      const prevQ = questions[prevIdx];
+      speakQuestionAndListen(prevQ.prompt, language, prevIdx, prevIdx !== 3);
     }
   };
 
+  // Photo Upload handler
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -313,10 +424,38 @@ export default function EditorialArtisanFlow({
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setCapturedPhoto(reader.result);
+        // Automatically progress to Price question after uploading photo
+        setTimeout(() => {
+          setCurrentQuestionIdx(4);
+          const nextT = getTranslations(language);
+          speakQuestionAndListen(nextT.q4Prompt, language, 4, true);
+        }, 500);
       }
     };
     reader.readAsDataURL(file);
   };
+
+  // Clean up speech on unmount
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+      stopRecording();
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
+  }, []);
+
+  // Live waveform animation when recording or AI is speaking
+  useEffect(() => {
+    let timer;
+    if (isRecording || isAiSpeaking) {
+      timer = setInterval(() => {
+        setWaveformLevels(
+          Array.from({ length: 16 }, () => Math.floor(10 + Math.random() * 34))
+        );
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [isRecording, isAiSpeaking]);
 
   const handleStartProcessing = async () => {
     stopSpeaking();
@@ -668,7 +807,7 @@ export default function EditorialArtisanFlow({
                       type="button"
                       onClick={() => {
                         setCurrentQuestionIdx(0);
-                        askQuestionAloud(questions[0].prompt);
+                        speakQuestionAndListen(questions[0].prompt, language, 0, true);
                       }}
                       className="bg-[#B5532A] hover:bg-[#973F1C] text-white py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                     >
@@ -721,12 +860,15 @@ export default function EditorialArtisanFlow({
               {/* -------------------------------------------------------- */}
               <div className="lg:col-span-5 flex flex-col items-center space-y-4">
                 {/* Speech Bubble from KarigarBazaar AI Assistant */}
-                <div className="w-full max-w-sm bg-white border border-[#EADBBE] rounded-2xl p-4 shadow-sm text-center relative mx-auto">
-                  <p className="text-xs font-bold text-[#2C1D13]">
-                    Namaste! I'm your KarigarBazaar AI assistant.
+                <div className="w-full max-w-sm bg-white border border-[#EADBBE] rounded-2xl p-4 shadow-sm text-center relative mx-auto transition-all">
+                  <p className="text-xs font-bold text-[#2C1D13] flex items-center justify-center gap-1.5">
+                    <span>Namaste! I'm your KarigarBazaar AI assistant.</span>
+                    {isAiSpeaking && <span className="animate-bounce">🔊</span>}
                   </p>
                   <p className="text-xs text-[#7A6752] mt-0.5 font-medium">
-                    {currentQuestionIdx === 0
+                    {isAiSpeaking
+                      ? `🔊 ${activeQuestion.prompt}`
+                      : currentQuestionIdx === 0
                       ? "👋 Let me help you list your product."
                       : `👉 ${activeQuestion.prompt}`}
                   </p>
@@ -742,9 +884,11 @@ export default function EditorialArtisanFlow({
 
                   {/* Robot Head Sphere */}
                   <div
-                    onClick={() => askQuestionAloud(activeQuestion.prompt)}
+                    onClick={() =>
+                      speakQuestionAndListen(activeQuestion.prompt, language, currentQuestionIdx, true)
+                    }
                     className="relative w-38 h-38 rounded-full bg-[#1B140E] border-4 border-[#C68345] shadow-2xl flex items-center justify-center cursor-pointer transition transform hover:scale-105 group"
-                    title="Click mascot to hear question aloud"
+                    title="Click mascot to hear question aloud and listen"
                   >
                     {/* Glowing Friendly Curved Eyes */}
                     <div className="flex items-center gap-7">
@@ -769,15 +913,27 @@ export default function EditorialArtisanFlow({
                         key={idx}
                         className="w-1.5 rounded-full transition-all duration-100"
                         style={{
-                          height: isRecording ? `${lvl}px` : '4px',
-                          backgroundColor: isRecording ? '#B5532A' : '#C68345',
+                          height: isRecording || isAiSpeaking ? `${lvl}px` : '4px',
+                          backgroundColor: isRecording
+                            ? '#B5532A'
+                            : isAiSpeaking
+                            ? '#D9A441'
+                            : '#C68345',
                         }}
                       />
                     ))}
                   </div>
 
                   <span className="text-xs font-semibold text-[#7A6752]">
-                    {isRecording ? 'Listening to your voice...' : 'Tap to speak...'}
+                    {isAiSpeaking
+                      ? 'AI speaking... listening starts right after 🔊'
+                      : isRecording
+                      ? language === 'hi'
+                        ? 'सुन रहे हैं... बोलकर उत्तर दें 🎙️'
+                        : 'Listening... speak into mic 🎙️'
+                      : language === 'hi'
+                      ? 'बोलने के लिए माइक दबाएं'
+                      : 'Tap to speak...'}
                   </span>
 
                   {/* Circular Terracotta/Ochre Microphone Trigger */}
@@ -787,9 +943,11 @@ export default function EditorialArtisanFlow({
                     className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 cursor-pointer ${
                       isRecording
                         ? 'bg-[#B5532A] ring-4 ring-[#B5532A]/30 animate-pulse'
+                        : isAiSpeaking
+                        ? 'bg-[#D9A441] ring-4 ring-[#D9A441]/30'
                         : 'bg-[#B5532A] hover:bg-[#973F1C]'
                     }`}
-                    title="Tap to speak your answer"
+                    title="Tap to speak or stop"
                   >
                     {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                   </button>
@@ -803,11 +961,13 @@ export default function EditorialArtisanFlow({
                     </span>
                     <button
                       type="button"
-                      onClick={() => askQuestionAloud(activeQuestion.prompt)}
+                      onClick={() =>
+                        speakQuestionAndListen(activeQuestion.prompt, language, currentQuestionIdx, true)
+                      }
                       className="flex items-center gap-1 text-[#2C1D13] hover:text-[#B5532A] cursor-pointer text-[11px] font-semibold"
                     >
                       <Volume2 className="w-3.5 h-3.5 text-[#C68345]" />
-                      <span>Hear question</span>
+                      <span>{language === 'hi' ? 'सवाल सुनें' : 'Hear question'}</span>
                     </button>
                   </div>
 
@@ -821,7 +981,7 @@ export default function EditorialArtisanFlow({
                     <div className="pt-2">
                       <label className="btn-secondary w-full py-2.5 text-xs flex items-center justify-center gap-2 cursor-pointer">
                         <Camera className="w-4 h-4 text-[#B5532A]" />
-                        <span>Choose craft photo</span>
+                        <span>{language === 'hi' ? 'शिल्प की फोटो चुनें' : 'Choose craft photo'}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -846,15 +1006,7 @@ export default function EditorialArtisanFlow({
                         <button
                           key={l.code}
                           type="button"
-                          onClick={() => {
-                            stopSpeaking();
-                            stopRecording();
-                            setLanguage(l.code);
-                            setVoiceAnswers((prev) => ({
-                              ...prev,
-                              languageChoice: `${l.nativeName} (${l.name})`,
-                            }));
-                          }}
+                          onClick={() => handleSelectLanguage(l.code)}
                           className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition border cursor-pointer ${
                             language === l.code
                               ? 'bg-[#B5532A] text-white border-[#B5532A]'
@@ -873,6 +1025,12 @@ export default function EditorialArtisanFlow({
                       <input
                         type="text"
                         value={voiceAnswers[activeQuestion.key]}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleNextQuestion();
+                          }
+                        }}
                         onChange={(e) => {
                           const val = e.target.value;
                           setVoiceAnswers((prev) => ({
@@ -880,12 +1038,21 @@ export default function EditorialArtisanFlow({
                             [activeQuestion.key]: val,
                           }));
                           if (activeQuestion.isLanguageStep) {
-                            detectAndApplyLanguage(val);
+                            const detected = detectAndApplyLanguage(val);
+                            if (detected) {
+                              handleSelectLanguage(detected);
+                            }
                           }
                         }}
                         placeholder={
-                          isRecording
-                            ? 'Listening... speak clearly into your mic'
+                          isAiSpeaking
+                            ? 'AI is speaking...'
+                            : isRecording
+                            ? language === 'hi'
+                              ? 'सुन रहे हैं... बोलकर उत्तर दें'
+                              : 'Listening... speak clearly into your mic'
+                            : language === 'hi'
+                            ? 'उत्तर बोलें या टाइप करें...'
                             : `Speak or type answer in ${langMeta.nativeName}...`
                         }
                         className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-[#2C1D13] bg-[#FAF3E7]/50 ${
@@ -1011,7 +1178,14 @@ export default function EditorialArtisanFlow({
                   <div className="pt-2 flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => askQuestionAloud(activeQuestion.prompt)}
+                      onClick={() =>
+                        speakQuestionAndListen(
+                          activeQuestion.prompt,
+                          language,
+                          currentQuestionIdx,
+                          true
+                        )
+                      }
                       className="text-xs font-bold text-[#B5532A] hover:underline cursor-pointer"
                     >
                       Learn More →

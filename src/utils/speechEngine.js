@@ -53,7 +53,7 @@ export function speakText(text, langCode = 'en', onEnd = null) {
   const meta = getLanguageMeta(langCode);
   const speechCode = meta.speechCode || 'en-IN';
   const ttsCode = meta.ttsCode || 'en';
-  const cleanText = text.replace(/[\*\_\#\~\`]/g, '').slice(0, 200);
+  const cleanText = text.replace(/[*_#~`]/g, '').slice(0, 200);
 
   // Preference: Use the high-quality server proxy MP3 stream ONLY
   // If it works, speech is crystal-clear Indian dialect without robot voice.
