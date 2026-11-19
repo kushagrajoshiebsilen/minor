@@ -135,7 +135,12 @@ export default function App() {
 
       <EditorialLoginModal
         isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
+        onClose={(res) => {
+          setIsLoginOpen(false);
+          if (res?.navigateToSeller) {
+            setCurrentRoute('artisan');
+          }
+        }}
         phone={phone}
         setPhone={setPhone}
         artisanProfile={artisanProfile}

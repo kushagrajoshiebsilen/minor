@@ -91,7 +91,7 @@ const EN = {
 
   // Voice Guided Q&A
   voiceDialectTitle: 'Speak with voice assistant',
-  voiceDialectDesc: 'Our AI voice assistant will ask you 4 simple questions one by one. Answer naturally by speaking.',
+  voiceDialectDesc: 'Our AI voice assistant will ask you all the questions required for selling. Answer naturally by speaking.',
   startVoiceInterview: 'Start voice conversation',
   voiceActivePrompt: 'Listening to your answer... Tap again to finish',
   questionPrefix: 'Question',
@@ -101,7 +101,9 @@ const EN = {
   finishVoice: 'Finish voice interview',
   replayQuestion: 'Read question aloud',
 
-  // Voice Interview Questions
+  // Language & Selling Questions asked by AI
+  q0Prompt: 'Namaste! Which language would you like to speak in today?',
+  q0Desc: 'e.g. Hindi, Gujarati, Tamil, Bengali, Marathi, or English',
   q1Prompt: 'What is the name of your handcrafted creation?',
   q1Desc: 'e.g. Hand-turned Terracotta Surahi or Pure Katan Silk Dupatta',
   q2Prompt: 'Which materials and traditional tools did you use?',
@@ -216,7 +218,7 @@ const HI = {
   noPhotoSelected: 'अभी तक कोई फोटो नहीं चुनी गई',
 
   voiceDialectTitle: 'AI वॉयस सहायक से बात करें',
-  voiceDialectDesc: 'हमारा AI सहायक आपसे एक-एक करके 4 सरल सवाल पूछेगा। आप बोलकर जवाब दें।',
+  voiceDialectDesc: 'हमारा AI सहायक आपसे बेचने के लिए ज़रूरी सभी सवाल पूछेगा। आप बोलकर जवाब दें।',
   startVoiceInterview: 'वॉयस बातचीत शुरू करें',
   voiceActivePrompt: 'आपका उत्तर सुन रहे हैं... समाप्त करने के लिए फिर टैप करें',
   questionPrefix: 'सवाल',
@@ -226,6 +228,8 @@ const HI = {
   finishVoice: 'बातचीत पूरी करें',
   replayQuestion: 'सवाल फिर से सुनें',
 
+  q0Prompt: 'नमस्ते! आज आप किस भाषा में बातचीत करना चाहते हैं?',
+  q0Desc: 'जैसे: हिन्दी, गुजराती, तमिल, बंगाली, मराठी या अंग्रेज़ी',
   q1Prompt: 'आपके बनाए इस हस्तशिल्प का क्या नाम है?',
   q1Desc: 'जैसे: हाथ से बनी टेराकोटा सुराही या बनारसी कतान सिल्क दुपट्टा',
   q2Prompt: 'आपने इसे बनाने में कौन सी सामग्री और तकनीक का उपयोग किया?',
@@ -336,7 +340,7 @@ const GU = {
   noPhotoSelected: 'હજી સુધી ફોટો પસંદ કર્યો નથી',
 
   voiceDialectTitle: 'AI વૉઇસ આસિસ્ટન્ટ સાથે વાત કરો',
-  voiceDialectDesc: 'અમારું AI આસિસ્ટન્ટ તમને એક પછી એક 4 સરળ પ્રશ્નો પૂછશે. તમે બોલીને જવાબ આપો.',
+  voiceDialectDesc: 'અમારું AI આસિસ્ટન્ટ તમને વેચાણ માટે જરૂરી તમામ પ્રશ્નો પૂછશે. તમે બોલીને જવાબ આપો.',
   startVoiceInterview: 'વૉઇસ વાતચીત શરૂ કરો',
   voiceActivePrompt: 'સાંભળી રહ્યા છીએ... પૂરું કરવા ફરી ટેપ કરો',
   questionPrefix: 'પ્રશ્ન',
@@ -346,6 +350,8 @@ const GU = {
   finishVoice: 'વાતચીત પૂર્ણ કરો',
   replayQuestion: 'પ્રશ્ન ફરી સાંભળો',
 
+  q0Prompt: 'નમસ્તે! આજે તમે કઈ ભાષામાં વાત કરવા માંગો છો?',
+  q0Desc: 'જેમ કે: ગુજરાતી, હિન્દી, અંગ્રેજી, મરાઠી કે તમિલ',
   q1Prompt: 'તમે બનાવેલા આ હસ્તકળા ઉત્પાદનનું નામ શું છે?',
   q1Desc: 'જેમ કે: અજરખ પ્રિન્ટ શાલ, ટેરાકોટા ઘડો અથવા ચન્નપટણા લાકડાનું રમકડું',
   q2Prompt: 'તમે કઈ સામગ્રી અને દેશી ટેકનિકનો ઉપયોગ કર્યો?',

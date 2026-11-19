@@ -46,6 +46,7 @@ export default function EditorialArtisanFlow({
   // Conversational Voice Q&A state (one-by-one interview)
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [voiceAnswers, setVoiceAnswers] = useState({
+    languageChoice: '',
     name: '',
     materials: '',
     duration: '',
@@ -76,8 +77,15 @@ export default function EditorialArtisanFlow({
   const [reviewMinPrice, setReviewMinPrice] = useState('650');
   const [reviewMaxPrice, setReviewMaxPrice] = useState('950');
 
-  // 4 Questions definition
+  // 5 Questions definition including Language Inquiry first
   const questions = [
+    {
+      id: 'languageChoice',
+      prompt: t.q0Prompt,
+      desc: t.q0Desc,
+      key: 'languageChoice',
+      isLanguageStep: true,
+    },
     {
       id: 'name',
       prompt: t.q1Prompt,
@@ -106,9 +114,54 @@ export default function EditorialArtisanFlow({
 
   const activeQuestion = questions[currentQuestionIdx];
 
+  // Helper to map spoken or typed language to language code
+  const detectAndApplyLanguage = (spokenText) => {
+    if (!spokenText) return;
+    const lower = spokenText.toLowerCase();
+    const map = [
+      { key: 'hindi', code: 'hi' },
+      { key: 'हिन्दी', code: 'hi' },
+      { key: 'gujarati', code: 'gu' },
+      { key: 'ગુજરાતી', code: 'gu' },
+      { key: 'tamil', code: 'ta' },
+      { key: 'தமிழ்', code: 'ta' },
+      { key: 'telugu', code: 'te' },
+      { key: 'తెలుగు', code: 'te' },
+      { key: 'bengali', code: 'bn' },
+      { key: 'বাংলা', code: 'bn' },
+      { key: 'marathi', code: 'mr' },
+      { key: 'मराठी', code: 'mr' },
+      { key: 'kannada', code: 'kn' },
+      { key: 'ಕನ್ನಡ', code: 'kn' },
+      { key: 'malayalam', code: 'ml' },
+      { key: 'മലയാളം', code: 'ml' },
+      { key: 'punjabi', code: 'pa' },
+      { key: 'ਪੰਜਾਬੀ', code: 'pa' },
+      { key: 'odia', code: 'or' },
+      { key: 'ଓଡ଼ିଆ', code: 'or' },
+      { key: 'urdu', code: 'ur' },
+      { key: 'اردو', code: 'ur' },
+      { key: 'assamese', code: 'as' },
+      { key: 'অসমীয়া', code: 'as' },
+      { key: 'rajasthani', code: 'raj' },
+      { key: 'राजस्थानी', code: 'raj' },
+      { key: 'kashmiri', code: 'ks' },
+      { key: 'english', code: 'en' },
+    ];
+
+    for (const item of map) {
+      if (lower.includes(item.key)) {
+        stopSpeaking();
+        stopRecording();
+        setLanguage(item.code);
+        return item.code;
+      }
+    }
+    return null;
+  };
+
   // Play question audio automatically on mount or explicit user request
   const askQuestionAloud = (promptText) => {
-    // If user is actively recording, stop mic first to prevent feedback
     if (isRecording) {
       stopRecording();
     }
@@ -168,6 +221,11 @@ export default function EditorialArtisanFlow({
               ? `${prev[activeQuestion.key]} ${text}`
               : text,
           }));
+
+          // If on Question 0 (language selection), dynamically auto-switch language if spoken
+          if (activeQuestion.isLanguageStep) {
+            detectAndApplyLanguage(text);
+          }
         },
         onInterim: () => {
           setMicError('');
@@ -563,16 +621,20 @@ export default function EditorialArtisanFlow({
                   </div>
 
                   {/* Input / Transcribed text */}
-                  <div>
+                  <div className="space-y-2">
                     <input
                       type="text"
                       value={voiceAnswers[activeQuestion.key]}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const val = e.target.value;
                         setVoiceAnswers((prev) => ({
                           ...prev,
-                          [activeQuestion.key]: e.target.value,
-                        }))
-                      }
+                          [activeQuestion.key]: val,
+                        }));
+                        if (activeQuestion.isLanguageStep) {
+                          detectAndApplyLanguage(val);
+                        }
+                      }}
                       placeholder={
                         isRecording
                           ? 'Listening... speak clearly into your mic'
@@ -584,6 +646,37 @@ export default function EditorialArtisanFlow({
                           : 'border-[#E4D9C8] focus:border-[#B5532A]'
                       }`}
                     />
+
+                    {/* If on Question 0, provide 1-click quick dialect chips */}
+                    {activeQuestion.isLanguageStep && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] uppercase font-bold text-[#2B3A67]/60 mr-1">
+                          Or tap to speak in:
+                        </span>
+                        {SUPPORTED_LANGUAGES.slice(0, 8).map((l) => (
+                          <button
+                            key={l.code}
+                            type="button"
+                            onClick={() => {
+                              stopSpeaking();
+                              stopRecording();
+                              setLanguage(l.code);
+                              setVoiceAnswers((prev) => ({
+                                ...prev,
+                                languageChoice: `${l.nativeName} (${l.name})`,
+                              }));
+                            }}
+                            className={`px-2 py-0.5 rounded-xs text-[11px] font-semibold transition cursor-pointer border ${
+                              language === l.code
+                                ? 'bg-[#B5532A] text-white border-[#B5532A]'
+                                : 'bg-white/80 hover:bg-white text-[#2B3A67] border-[#E4D9C8]'
+                            }`}
+                          >
+                            {l.nativeName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {micError && (

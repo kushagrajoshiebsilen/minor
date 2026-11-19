@@ -44,7 +44,7 @@ export default function EditorialLoginModal({
       name: artisanName.trim() || 'Master Artisan',
       location: location.trim() || 'India',
     });
-    onClose();
+    onClose({ navigateToSeller: true });
   };
 
   return (
