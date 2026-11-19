@@ -14,7 +14,7 @@ export default function EditorialNavbar({
   const t = getTranslations(language);
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#F6EFE4]/95 backdrop-blur-xs border-b border-[#E4D9C8]">
+    <header className="sticky top-0 z-40 w-full bg-transparent border-b border-[#2B3A67]/10 backdrop-blur-xs">
       <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
         {/* Real KarigarBazaar Logo at Left */}
         <button
@@ -67,12 +67,12 @@ export default function EditorialNavbar({
           </a>
         </nav>
 
-        {/* Right: Language switcher and Login */}
+        {/* Right: Language switcher and Login without harsh white buttons */}
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={onOpenLanguage}
-            className="flex items-center gap-1.5 text-xs text-[#2B3A67] hover:text-[#B5532A] border border-[#E4D9C8] px-3 py-1.5 rounded-sm bg-white/80 transition cursor-pointer"
+            className="flex items-center gap-1.5 text-xs text-[#2B3A67] hover:text-[#B5532A] border border-[#2B3A67]/20 px-3 py-1.5 rounded-sm bg-[#F6EFE4]/40 hover:bg-[#F6EFE4]/70 transition cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-[#D9A441]" />
             <span className="font-medium">{langMeta.nativeName}</span>

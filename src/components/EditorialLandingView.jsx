@@ -41,17 +41,14 @@ export default function EditorialLandingView({
 
   return (
     <div className="w-full flex flex-col">
-      {/* 1. HERO SECTION (Custom artisan craft background with carved elephant & handloom silk) */}
+      {/* 1. HERO SECTION (Pure background image without white foggy layers) */}
       <section className="relative w-full min-h-[88vh] flex items-center overflow-hidden">
-        {/* Hero-specific background image */}
+        {/* Hero-specific background image - crystal clear, authentic lighting */}
         <div
           className="absolute inset-0 bg-cover bg-center sm:bg-right"
           style={{ backgroundImage: `url('/hero-bg.jpg')` }}
           aria-hidden="true"
         />
-
-        {/* Soft, warm cream wash on the left side to keep text crisp while keeping the elephant and textiles completely visible on the right */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F6EFE4]/95 via-[#F6EFE4]/70 to-transparent pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-6 py-24 w-full z-10">
           <div className="max-w-2xl space-y-6">
@@ -65,16 +62,16 @@ export default function EditorialLandingView({
             </h1>
 
             {/* One line below it */}
-            <p className="text-lg text-[#2B3A67] font-medium leading-relaxed">
+            <p className="text-lg text-[#2B3A67] font-medium leading-relaxed max-w-xl">
               {t.heroDesc}
             </p>
 
-            {/* Buttons */}
+            {/* Buttons: no harsh white outlines or boxes */}
             <div className="flex flex-wrap items-center gap-4 pt-4">
               <button
                 type="button"
                 onClick={onStartSelling}
-                className="btn-terracotta shadow-md"
+                className="btn-terracotta"
               >
                 <span>{t.startSelling}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -83,7 +80,7 @@ export default function EditorialLandingView({
               <button
                 type="button"
                 onClick={onBrowseCrafts}
-                className="btn-secondary shadow-xs"
+                className="btn-secondary"
               >
                 <span>{t.browseCrafts}</span>
               </button>

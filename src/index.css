@@ -35,36 +35,36 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Full-viewport fixed artisan workbench background across the whole website */
+/* Full-viewport fixed background across the whole website */
 .site-backdrop {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background-image: url('/background.png');
+  background-image: url('/hero-bg.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   pointer-events: none;
 }
 
-/* Ultra-light translucent wash so workbench wood texture, tools & pottery are clearly visible */
+/* Zero white overlay - pure transparent wash */
 .site-veil {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: rgba(246, 239, 228, 0.28);
+  background: transparent;
   pointer-events: none;
 }
 
-/* Glassy editorial paper containers that let the artisan workbench show through */
+/* Transparent editorial section styling */
 .bg-cream {
-  background-color: rgba(246, 239, 228, 0.65);
+  background-color: rgba(246, 239, 228, 0.45);
+  backdrop-filter: blur(2px);
 }
 
 .bg-cream-cloth {
-  background-color: rgba(236, 227, 210, 0.60);
-  background-image: radial-gradient(#B5532A 0.5px, transparent 0.5px);
-  background-size: 20px 20px;
+  background-color: rgba(236, 227, 210, 0.45);
+  backdrop-filter: blur(2px);
 }
 
 /* Clean Editorial Button (Terracotta primary) */
@@ -86,10 +86,9 @@
   background-color: #973F1C;
 }
 
-/* Secondary Editorial Button (Indigo outlined / ghost) */
+/* Secondary Editorial Button (Warm organic border, no harsh white box) */
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(4px);
+  background-color: transparent;
   color: #2B3A67;
   border: 1px solid #2B3A67;
   border-radius: 4px;
@@ -108,11 +107,10 @@
   color: #F6EFE4;
 }
 
-/* Quiet Product Card with translucent paper backdrop */
+/* Quiet Product Card */
 .craft-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(228, 217, 200, 0.85);
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(228, 217, 200, 0.75);
   border-radius: 4px;
   overflow: hidden;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
@@ -120,7 +118,7 @@
 .craft-card:hover {
   border-color: #B5532A;
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(43, 58, 103, 0.2);
+  box-shadow: 0 12px 30px -10px rgba(43, 58, 103, 0.18);
 }
 
 /* Slim scrollbar */
